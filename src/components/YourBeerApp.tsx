@@ -27,8 +27,8 @@ const tabs: Array<{ label: string; type: Tab; icon: React.ReactNode }> = [
 export default function YourBeerApp() {
   const [tab, setTab] = useState<Tab>("store");
   const [panel, setPanel] = useState<Panel>(null);
-  const [region, setRegion] = useState("Wellington");
-  const [coords, setCoords] = useState(regionCentres.Wellington);
+  const [region, setRegion] = useState("Choose city");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState(5);
   const [style, setStyle] = useState("all");
   const [sort, setSort] = useState<SortMode>("price");
@@ -37,8 +37,22 @@ export default function YourBeerApp() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [askedForLocation, setAskedForLocation] = useState(false);
 
   useEffect(() => {
+    if (askedForLocation) return;
+    setAskedForLocation(true);
+    locate();
+  }, [askedForLocation]);
+
+  useEffect(() => {
+    if (!coords) {
+      setResults([]);
+      setVenues([]);
+      setLoading(false);
+      return;
+    }
+
     const params = new URLSearchParams({
       region,
       lat: String(coords.lat),
@@ -113,7 +127,9 @@ export default function YourBeerApp() {
 
   function locate() {
     if (!navigator.geolocation) {
-      setNotice("Location unavailable.");
+      setCoords(regionCentres.Wellington);
+      setRegion("Wellington");
+      setNotice("Location unavailable. Showing Wellington.");
       return;
     }
 
@@ -121,9 +137,14 @@ export default function YourBeerApp() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setRegion("Near me");
         setNotice("Using your location.");
       },
-      () => setNotice("Could not use location."),
+      () => {
+        setCoords(regionCentres.Wellington);
+        setRegion("Wellington");
+        setNotice("Location blocked. Showing Wellington.");
+      },
       { enableHighAccuracy: true, timeout: 6000 },
     );
   }
@@ -163,8 +184,8 @@ export default function YourBeerApp() {
         suburb: form.get("suburb"),
         special: form.get("special"),
         region,
-        lat: coords.lat,
-        lng: coords.lng,
+        lat: coords?.lat ?? regionCentres.Wellington.lat,
+        lng: coords?.lng ?? regionCentres.Wellington.lng,
         openTonight: true,
       }),
     });
@@ -247,7 +268,20 @@ export default function YourBeerApp() {
 
           <div className="grid h-[calc(100%-57px)] min-h-0 grid-rows-[44%_56%] lg:grid-cols-[1fr_360px] lg:grid-rows-1">
             <div className="min-h-0 border-b border-black/10 lg:border-b-0 lg:border-r">
-              <BeerMapShell listings={mapPlaces} centre={coords} activeId={activePlace?.id ?? null} onActive={setActiveId} />
+              {coords ? (
+                <BeerMapShell listings={mapPlaces} centre={coords} activeId={activePlace?.id ?? null} onActive={setActiveId} />
+              ) : (
+                <div className="grid h-full place-items-center bg-[#e8ecd8] p-6 text-center">
+                  <div>
+                    <p className="text-2xl font-black">Choose a city</p>
+                    <p className="mt-2 text-sm font-bold text-black/55">Or tap Near me to show real nearby stores.</p>
+                    <button onClick={locate} className="button mt-4 bg-[#245c3b] text-white">
+                      <LocateFixed className="h-4 w-4" />
+                      Near me
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="min-h-0 overflow-auto p-2">
               <div className="grid gap-2">
