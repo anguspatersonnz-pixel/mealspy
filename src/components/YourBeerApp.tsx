@@ -3,6 +3,7 @@
 import { Beer, Building2, LocateFixed, MapPin, Store } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Listing, ListingType, money, regionCentres, regions, styles } from "@/lib/data";
+import BeerMap from "./BeerMap";
 
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
@@ -23,6 +24,7 @@ export default function YourBeerApp() {
   const [results, setResults] = useState<Listing[]>([]);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams({
@@ -52,6 +54,7 @@ export default function YourBeerApp() {
   }, [results, sort]);
 
   const best = sorted[0];
+  const activeListing = sorted.find((listing) => listing.id === activeId) ?? best;
 
   function chooseRegion(nextRegion: string) {
     setRegion(nextRegion);
@@ -119,6 +122,7 @@ export default function YourBeerApp() {
     if (response.ok) {
       event.currentTarget.reset();
       setResults((current) => [data.listing, ...current]);
+      setActiveId(data.listing.id);
     }
   }
 
@@ -224,9 +228,18 @@ export default function YourBeerApp() {
               <h2 className="text-2xl font-black">{tabs.find((item) => item.type === tab)?.label}</h2>
               <span className="text-sm font-bold text-black/45">{sorted.length} found</span>
             </div>
+            <div className="mb-3">
+              <BeerMap listings={sorted} centre={coords} activeId={activeListing?.id ?? null} onActive={setActiveId} />
+            </div>
             <div className="grid gap-2">
               {sorted.map((listing) => (
-                <article key={listing.id} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto]">
+                <article
+                  key={listing.id}
+                  className={`grid gap-3 rounded-lg border bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto] ${
+                    activeListing?.id === listing.id ? "border-[#245c3b]" : "border-black/10"
+                  }`}
+                  onMouseEnter={() => setActiveId(listing.id)}
+                >
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-black">{listing.product}</h3>
