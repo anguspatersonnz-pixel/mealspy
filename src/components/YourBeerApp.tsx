@@ -10,8 +10,8 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Listing, ListingType, money, regionCentres, regions, styles } from "@/lib/data";
-import BeerMap from "./BeerMap";
+import { Listing, ListingType, money, regionCentres, regions, styles, type Venue } from "@/lib/data";
+import BeerMap, { type MapPlace } from "./BeerMap";
 
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
@@ -32,6 +32,7 @@ export default function YourBeerApp() {
   const [style, setStyle] = useState("all");
   const [sort, setSort] = useState<SortMode>("price");
   const [results, setResults] = useState<Listing[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -53,6 +54,11 @@ export default function YourBeerApp() {
       .then((data) => setResults(Array.isArray(data.listings) ? data.listings : []))
       .catch(() => setResults([]))
       .finally(() => setLoading(false));
+
+    fetch(`/api/venues?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => setVenues(Array.isArray(data.venues) ? data.venues : []))
+      .catch(() => setVenues([]));
   }, [coords, radius, region, style, tab]);
 
   const sorted = useMemo(() => {
@@ -64,7 +70,40 @@ export default function YourBeerApp() {
   }, [results, sort]);
 
   const best = sorted[0];
+  const mapPlaces: MapPlace[] = useMemo(() => {
+    const priced = sorted.map((listing) => ({
+      id: listing.id,
+      type: listing.type,
+      venue: listing.venue,
+      product: listing.product,
+      price: listing.price,
+      unit: listing.unit,
+      lat: listing.lat,
+      lng: listing.lng,
+      suburb: listing.suburb,
+      distanceKm: listing.distanceKm,
+      hasPrice: true,
+    }));
+
+    const pricedNames = new Set(priced.map((listing) => `${listing.venue}-${listing.suburb}`.toLowerCase()));
+    const unpriced = venues
+      .filter((venue) => !pricedNames.has(`${venue.name}-${venue.suburb}`.toLowerCase()))
+      .map((venue) => ({
+        id: venue.id,
+        type: venue.type,
+        venue: venue.name,
+        lat: venue.lat,
+        lng: venue.lng,
+        suburb: venue.suburb,
+        distanceKm: venue.distanceKm,
+        hasPrice: false,
+      }));
+
+    return [...priced, ...unpriced];
+  }, [sorted, venues]);
+
   const activeListing = sorted.find((listing) => listing.id === activeId) ?? best;
+  const activePlace = mapPlaces.find((place) => place.id === activeId) ?? mapPlaces[0];
 
   function chooseRegion(nextRegion: string) {
     setRegion(nextRegion);
@@ -192,7 +231,7 @@ export default function YourBeerApp() {
             <div>
               <h1 className="text-lg font-black">{tabs.find((item) => item.type === tab)?.label}</h1>
               <p className="text-xs font-bold text-black/45">
-                {loading ? "Loading" : `${sorted.length} nearby`} {best ? `· from ${money(best.price)}` : ""}
+                {loading ? "Loading" : `${mapPlaces.length} nearby`} {best ? `· from ${money(best.price)}` : ""}
               </p>
             </div>
             <div className="flex gap-2">
@@ -207,7 +246,7 @@ export default function YourBeerApp() {
 
           <div className="grid h-[calc(100%-57px)] min-h-0 grid-rows-[44%_56%] lg:grid-cols-[1fr_360px] lg:grid-rows-1">
             <div className="min-h-0 border-b border-black/10 lg:border-b-0 lg:border-r">
-              <BeerMap listings={sorted} centre={coords} activeId={activeListing?.id ?? null} onActive={setActiveId} />
+              <BeerMap listings={mapPlaces} centre={coords} activeId={activePlace?.id ?? null} onActive={setActiveId} />
             </div>
             <div className="min-h-0 overflow-auto p-2">
               <div className="grid gap-2">
@@ -232,6 +271,27 @@ export default function YourBeerApp() {
                         <p className="text-2xl font-black text-[#245c3b]">{money(listing.price)}</p>
                         <p className="text-xs font-bold text-black/45">{listing.unit}</p>
                       </div>
+                    </div>
+                  </article>
+                ))}
+                {mapPlaces.filter((place) => !place.hasPrice).map((place) => (
+                  <article
+                    key={place.id}
+                    className={`rounded-lg border bg-white p-3 shadow-sm ${
+                      activePlace?.id === place.id ? "border-[#245c3b]" : "border-black/10"
+                    }`}
+                    onMouseEnter={() => setActiveId(place.id)}
+                    onClick={() => setActiveId(place.id)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="font-black leading-tight">{place.venue}</h2>
+                        <p className="mt-1 text-sm font-bold text-black/55">
+                          {place.suburb} · {(place.distanceKm ?? 0).toFixed(1)} km
+                        </p>
+                        <p className="mt-1 text-sm text-black/55">No price yet</p>
+                      </div>
+                      <p className="rounded bg-black/5 px-2 py-1 text-xs font-black text-black/55">venue</p>
                     </div>
                   </article>
                 ))}

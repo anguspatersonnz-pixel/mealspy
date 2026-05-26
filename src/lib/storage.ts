@@ -1,13 +1,17 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Listing } from "./data";
+import { distanceKm, starterVenues, type Venue, type VenueType } from "./data";
 import {
   applicationToRow,
   hasSupabase,
   listingFromRow,
   listingToRow,
   supabaseAdmin,
+  venueFromRow,
+  venueToRow,
   type ListingRow,
+  type VenueRow,
 } from "./supabase";
 
 export type SellerApplication = {
@@ -24,6 +28,7 @@ export type SellerApplication = {
 const dataDir = path.join(process.cwd(), ".data");
 const listingsFile = path.join(dataDir, "listings.json");
 const applicationsFile = path.join(dataDir, "applications.json");
+const venuesFile = path.join(dataDir, "venues.json");
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
@@ -88,4 +93,53 @@ export async function addApplication(application: SellerApplication) {
   const next = [application, ...applications];
   await writeJson(applicationsFile, next);
   return application;
+}
+
+export async function getVenues() {
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("venues")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (!error && data) return (data as VenueRow[]).map(venueFromRow);
+  }
+
+  const localVenues = await readJson<Venue[]>(venuesFile, []);
+  return [...localVenues, ...starterVenues];
+}
+
+export async function getVenuesNear(params: {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  type?: VenueType | "all";
+}) {
+  const venues = await getVenues();
+  return venues
+    .map((venue) => ({
+      ...venue,
+      distanceKm: Number(distanceKm(params, venue).toFixed(1)),
+    }))
+    .filter((venue) => venue.distanceKm <= params.radiusKm)
+    .filter((venue) => !params.type || params.type === "all" || venue.type === params.type)
+    .sort((a, b) => (a.distanceKm ?? 99) - (b.distanceKm ?? 99));
+}
+
+export async function addVenue(venue: Venue) {
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("venues")
+      .upsert(venueToRow(venue), { onConflict: "id" })
+      .select("*")
+      .single();
+
+    if (!error && data) return venueFromRow(data as VenueRow);
+    throw new Error(error?.message ?? "Could not save venue");
+  }
+
+  const venues = await readJson<Venue[]>(venuesFile, []);
+  const next = [venue, ...venues.filter((item) => item.id !== venue.id)];
+  await writeJson(venuesFile, next);
+  return venue;
 }

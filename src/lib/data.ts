@@ -1,4 +1,5 @@
 export type ListingType = "store" | "bar" | "maker";
+export type VenueType = ListingType;
 
 export type AlcoholStyle =
   | "lager"
@@ -27,6 +28,25 @@ export type Listing = {
   openTonight: boolean;
   special: string;
   verified: boolean;
+};
+
+export type Venue = {
+  id: string;
+  type: VenueType;
+  name: string;
+  chain: string | null;
+  address: string;
+  suburb: string;
+  city: string;
+  region: string;
+  lat: number;
+  lng: number;
+  phone: string | null;
+  website: string | null;
+  source: string;
+  checkedAt: string;
+  verified: boolean;
+  distanceKm?: number;
 };
 
 export const listings: Listing[] = [
@@ -236,6 +256,128 @@ export const listings: Listing[] = [
   },
 ];
 
+export const starterVenues: Venue[] = [
+  {
+    id: "venue-thorndon-bottle-house",
+    type: "store",
+    name: "Thorndon Bottle House",
+    chain: null,
+    address: "Thorndon",
+    suburb: "Thorndon",
+    city: "Wellington",
+    region: "Wellington",
+    lat: -41.2769,
+    lng: 174.7772,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+  {
+    id: "venue-kelburn-liquor-centre",
+    type: "store",
+    name: "Kelburn Liquor Centre",
+    chain: null,
+    address: "Kelburn",
+    suburb: "Kelburn",
+    city: "Wellington",
+    region: "Wellington",
+    lat: -41.2903,
+    lng: 174.7592,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+  {
+    id: "venue-goldings-free-dive",
+    type: "bar",
+    name: "Golding's Free Dive",
+    chain: null,
+    address: "Te Aro",
+    suburb: "Te Aro",
+    city: "Wellington",
+    region: "Wellington",
+    lat: -41.2939,
+    lng: 174.7749,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+  {
+    id: "venue-aro-taproom",
+    type: "bar",
+    name: "Aro Taproom",
+    chain: null,
+    address: "Aro Valley",
+    suburb: "Aro Valley",
+    city: "Wellington",
+    region: "Wellington",
+    lat: -41.2955,
+    lng: 174.7676,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+  {
+    id: "venue-south-coast-ferments",
+    type: "maker",
+    name: "South Coast Ferments",
+    chain: null,
+    address: "Island Bay",
+    suburb: "Island Bay",
+    city: "Wellington",
+    region: "Wellington",
+    lat: -41.3375,
+    lng: 174.7726,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+  {
+    id: "venue-morningside-tavern",
+    type: "bar",
+    name: "Morningside Tavern",
+    chain: null,
+    address: "Morningside",
+    suburb: "Morningside",
+    city: "Auckland",
+    region: "Auckland",
+    lat: -36.8756,
+    lng: 174.7322,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+  {
+    id: "venue-ponsonby-liquor",
+    type: "store",
+    name: "Ponsonby Liquor",
+    chain: null,
+    address: "Ponsonby",
+    suburb: "Ponsonby",
+    city: "Auckland",
+    region: "Auckland",
+    lat: -36.8474,
+    lng: 174.7435,
+    phone: null,
+    website: null,
+    source: "starter",
+    checkedAt: "2026-05-26",
+    verified: true,
+  },
+];
+
 export const styles: AlcoholStyle[] = [
   "lager",
   "ipa",
@@ -291,6 +433,22 @@ export function listingsNear(params: {
     .filter((listing) => !params.style || params.style === "all" || listing.style === params.style)
     .filter((listing) => !params.openTonight || listing.openTonight)
     .sort((a, b) => a.price - b.price);
+}
+
+export function venuesNear(params: {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  type?: VenueType | "all";
+}) {
+  return starterVenues
+    .map((venue) => ({
+      ...venue,
+      distanceKm: Number(distanceKm(params, venue).toFixed(1)),
+    }))
+    .filter((venue) => venue.distanceKm <= params.radiusKm)
+    .filter((venue) => !params.type || params.type === "all" || venue.type === params.type)
+    .sort((a, b) => (a.distanceKm ?? 99) - (b.distanceKm ?? 99));
 }
 
 export function money(value: number) {

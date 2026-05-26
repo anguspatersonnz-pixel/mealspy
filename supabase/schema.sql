@@ -11,8 +11,28 @@ create table if not exists public.seller_applications (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.venues (
+  id text primary key,
+  type text not null check (type in ('store', 'bar', 'maker')),
+  name text not null,
+  chain text,
+  address text not null,
+  suburb text not null,
+  city text not null,
+  region text not null,
+  lat double precision not null,
+  lng double precision not null,
+  phone text,
+  website text,
+  source text not null default 'manual',
+  checked_at date not null default current_date,
+  verified boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.listings (
   id text primary key,
+  venue_id text references public.venues(id) on delete set null,
   type text not null check (type in ('store', 'bar', 'maker')),
   venue text not null,
   product text not null,
@@ -29,16 +49,27 @@ create table if not exists public.listings (
   created_at timestamptz not null default now()
 );
 
+alter table public.listings
+  add column if not exists venue_id text references public.venues(id) on delete set null;
+
 create index if not exists listings_region_type_idx on public.listings (region, type);
 create index if not exists listings_created_at_idx on public.listings (created_at desc);
 create index if not exists seller_applications_created_at_idx on public.seller_applications (created_at desc);
+create index if not exists venues_region_type_idx on public.venues (region, type);
+create index if not exists venues_lat_lng_idx on public.venues (lat, lng);
 
 alter table public.seller_applications enable row level security;
 alter table public.listings enable row level security;
+alter table public.venues enable row level security;
 
 drop policy if exists "public can read listings" on public.listings;
 create policy "public can read listings"
   on public.listings for select
+  using (true);
+
+drop policy if exists "public can read venues" on public.venues;
+create policy "public can read venues"
+  on public.venues for select
   using (true);
 
 -- Writes go through the Next.js API using SUPABASE_SERVICE_ROLE_KEY.

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Listing } from "./data";
+import type { Venue } from "./data";
 import type { SellerApplication } from "./storage";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -30,6 +31,25 @@ export type ListingRow = {
   region: string;
   open_tonight: boolean;
   special: string;
+  verified: boolean;
+  created_at: string;
+};
+
+export type VenueRow = {
+  id: string;
+  type: Venue["type"];
+  name: string;
+  chain: string | null;
+  address: string;
+  suburb: string;
+  city: string;
+  region: string;
+  lat: number;
+  lng: number;
+  phone: string | null;
+  website: string | null;
+  source: string;
+  checked_at: string;
   verified: boolean;
   created_at: string;
 };
@@ -88,5 +108,45 @@ export function applicationToRow(application: SellerApplication) {
     region: application.region,
     status: application.status,
     created_at: application.createdAt,
+  };
+}
+
+export function venueFromRow(row: VenueRow): Venue {
+  return {
+    id: row.id,
+    type: row.type,
+    name: row.name,
+    chain: row.chain,
+    address: row.address,
+    suburb: row.suburb,
+    city: row.city,
+    region: row.region,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    phone: row.phone,
+    website: row.website,
+    source: row.source,
+    checkedAt: row.checked_at,
+    verified: row.verified,
+  };
+}
+
+export function venueToRow(venue: Venue): Omit<VenueRow, "created_at"> {
+  return {
+    id: venue.id,
+    type: venue.type,
+    name: venue.name,
+    chain: venue.chain,
+    address: venue.address,
+    suburb: venue.suburb,
+    city: venue.city,
+    region: venue.region,
+    lat: venue.lat,
+    lng: venue.lng,
+    phone: venue.phone,
+    website: venue.website,
+    source: venue.source,
+    checked_at: venue.checkedAt,
+    verified: venue.verified,
   };
 }

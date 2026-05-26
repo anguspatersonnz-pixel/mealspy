@@ -1,10 +1,24 @@
 "use client";
 
 import { Beer, Building2, Store } from "lucide-react";
-import { Listing, ListingType, money } from "@/lib/data";
+import { ListingType, money } from "@/lib/data";
+
+export type MapPlace = {
+  id: string;
+  type: ListingType;
+  venue: string;
+  product?: string;
+  price?: number;
+  unit?: string;
+  lat: number;
+  lng: number;
+  suburb: string;
+  distanceKm?: number;
+  hasPrice: boolean;
+};
 
 type Props = {
-  listings: Listing[];
+  listings: MapPlace[];
   centre: { lat: number; lng: number };
   activeId: string | null;
   onActive: (id: string) => void;
@@ -19,7 +33,7 @@ const iconByType: Record<ListingType, React.ReactNode> = {
 export default function BeerMap({ listings, centre, activeId, onActive }: Props) {
   const nearest = listings.slice(0, 10);
 
-  function position(listing: Listing) {
+  function position(listing: MapPlace) {
     const latSpan = 0.075;
     const lngSpan = 0.095;
     const x = 50 + ((listing.lng - centre.lng) / lngSpan) * 50;
@@ -52,10 +66,10 @@ export default function BeerMap({ listings, centre, activeId, onActive }: Props)
                 activeId === listing.id ? "bg-[#1f1b16] text-white" : "bg-white text-[#245c3b]"
               }`}
               style={position(listing)}
-              aria-label={`${listing.venue} ${money(listing.price)}`}
+              aria-label={`${listing.venue} ${listing.price != null ? money(listing.price) : "No price yet"}`}
             >
               {iconByType[listing.type]}
-              {money(listing.price)}
+              {listing.price != null ? money(listing.price) : "new"}
             </button>
           ))}
         </div>
@@ -70,9 +84,9 @@ export default function BeerMap({ listings, centre, activeId, onActive }: Props)
               }`}
             >
               <p className="font-black">{listing.venue}</p>
-              <p className="text-sm text-black/55">{listing.product}</p>
+              <p className="text-sm text-black/55">{listing.product ?? listing.suburb}</p>
               <p className="mt-1 text-sm font-black text-[#245c3b]">
-                {money(listing.price)} · {(listing.distanceKm ?? 0).toFixed(1)} km
+                {listing.price != null ? money(listing.price) : "No price yet"} · {(listing.distanceKm ?? 0).toFixed(1)} km
               </p>
             </button>
           ))}

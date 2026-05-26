@@ -30,7 +30,22 @@ Without those env vars, the API falls back to local `.data` files for developmen
 
 ## Import starter data
 
-Convert a spreadsheet to JSON with these fields:
+Venue locations first:
+
+```text
+type, name, chain, address, suburb, city, region, lat, lng, phone, website, source, checked_at
+```
+
+Then POST venues:
+
+```bash
+curl -X POST https://your-domain.vercel.app/api/import-venues \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: YOURBEER_ADMIN_TOKEN" \
+  -d '{"venues":[{"type":"store","name":"Example Bottle Shop","chain":"Example","address":"1 Example Street","suburb":"Te Aro","city":"Wellington","region":"Wellington","lat":-41.2924,"lng":174.7787,"source":"manual"}]}'
+```
+
+Prices/specials later:
 
 ```text
 type, venue, product, style, price, unit, suburb, region, lat, lng, special
