@@ -32,13 +32,13 @@ export default function BeerMap({ listings, centre, activeId, onActive }: Props)
   }
 
   return (
-    <section className="rounded-lg border border-black/10 bg-white p-3 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
+    <section className="flex h-full flex-col bg-white p-2">
+      <div className="mb-2 flex items-center justify-between">
         <h2 className="text-xl font-black">Beer map</h2>
         <span className="text-xs font-bold text-black/45">nearest first</span>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
-        <div className="relative min-h-[320px] overflow-hidden rounded-lg border border-black/10 bg-[#e8ecd8]">
+      <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[1fr_190px]">
+        <div className="relative min-h-[190px] overflow-hidden rounded-lg border border-black/10 bg-[#e8ecd8]">
           <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(31,27,22,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(31,27,22,.09)_1px,transparent_1px)] [background-size:34px_34px]" />
           <div className="absolute left-1/2 top-1/2 z-10 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-white bg-[#245c3b] text-xs font-black text-white shadow">
             you
@@ -59,7 +59,7 @@ export default function BeerMap({ listings, centre, activeId, onActive }: Props)
             </button>
           ))}
         </div>
-        <div className="grid max-h-[320px] gap-2 overflow-auto">
+        <div className="hidden gap-2 overflow-auto lg:grid">
           {nearest.map((listing) => (
             <button
               key={listing.id}
