@@ -1,7 +1,10 @@
 "use client";
 
-import { Beer, Building2, Store } from "lucide-react";
+import { useEffect } from "react";
+import { DivIcon, LatLngBoundsExpression } from "leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { ListingType, money } from "@/lib/data";
+import "leaflet/dist/leaflet.css";
 
 export type MapPlace = {
   id: string;
@@ -24,69 +27,126 @@ type Props = {
   onActive: (id: string) => void;
 };
 
-const iconByType: Record<ListingType, React.ReactNode> = {
-  store: <Store className="h-3.5 w-3.5" />,
-  bar: <Beer className="h-3.5 w-3.5" />,
-  maker: <Building2 className="h-3.5 w-3.5" />,
-};
+function markerIcon(place: MapPlace, active: boolean) {
+  const label = place.price != null ? money(place.price).replace("NZ", "") : "new";
+  const bg = active ? "#1f1b16" : place.hasPrice ? "#245c3b" : "#ffffff";
+  const color = active || place.hasPrice ? "#ffffff" : "#245c3b";
+  const border = active ? "#f0bb4d" : "#ffffff";
+
+  return new DivIcon({
+    className: "",
+    html: `<div style="
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:46px;
+      height:30px;
+      padding:0 8px;
+      border-radius:999px;
+      border:3px solid ${border};
+      background:${bg};
+      color:${color};
+      font-size:12px;
+      font-weight:900;
+      box-shadow:0 6px 16px rgba(0,0,0,.22);
+      white-space:nowrap;
+    ">${label}</div>`,
+    iconSize: [50, 30],
+    iconAnchor: [25, 15],
+  });
+}
+
+const userIcon = new DivIcon({
+  className: "",
+  html: `<div style="
+    width:22px;
+    height:22px;
+    border-radius:999px;
+    border:4px solid white;
+    background:#1677ff;
+    box-shadow:0 0 0 3px rgba(22,119,255,.25),0 6px 16px rgba(0,0,0,.25);
+  "></div>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
+
+function FitMap({ centre, listings }: { centre: Props["centre"]; listings: MapPlace[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!listings.length) {
+      map.setView([centre.lat, centre.lng], 13);
+      return;
+    }
+
+    const points: LatLngBoundsExpression = [
+      [centre.lat, centre.lng],
+      ...listings.slice(0, 20).map((place) => [place.lat, place.lng] as [number, number]),
+    ];
+    map.fitBounds(points, { padding: [28, 28], maxZoom: 15 });
+  }, [centre, listings, map]);
+
+  return null;
+}
 
 export default function BeerMap({ listings, centre, activeId, onActive }: Props) {
-  const nearest = listings.slice(0, 10);
-
-  function position(listing: MapPlace) {
-    const latSpan = 0.075;
-    const lngSpan = 0.095;
-    const x = 50 + ((listing.lng - centre.lng) / lngSpan) * 50;
-    const y = 50 - ((listing.lat - centre.lat) / latSpan) * 50;
-
-    return {
-      left: `${Math.max(6, Math.min(94, x))}%`,
-      top: `${Math.max(8, Math.min(92, y))}%`,
-    };
-  }
+  const nearest = listings.slice(0, 30);
 
   return (
     <section className="flex h-full flex-col bg-white p-2">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-xl font-black">Beer map</h2>
-        <span className="text-xs font-bold text-black/45">nearest first</span>
+        <span className="text-xs font-bold text-black/45">OpenStreetMap</span>
       </div>
       <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[1fr_190px]">
-        <div className="relative min-h-[190px] overflow-hidden rounded-lg border border-black/10 bg-[#e8ecd8]">
-          <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(31,27,22,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(31,27,22,.09)_1px,transparent_1px)] [background-size:34px_34px]" />
-          <div className="absolute left-1/2 top-1/2 z-10 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-white bg-[#245c3b] text-xs font-black text-white shadow">
-            you
-          </div>
-          {nearest.map((listing) => (
-            <button
-              key={listing.id}
-              type="button"
-              onClick={() => onActive(listing.id)}
-              className={`absolute z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black shadow ${
-                activeId === listing.id ? "bg-[#1f1b16] text-white" : "bg-white text-[#245c3b]"
-              }`}
-              style={position(listing)}
-              aria-label={`${listing.venue} ${listing.price != null ? money(listing.price) : "No price yet"}`}
-            >
-              {iconByType[listing.type]}
-              {listing.price != null ? money(listing.price) : "new"}
-            </button>
-          ))}
+        <div className="min-h-[190px] overflow-hidden rounded-lg border border-black/10">
+          <MapContainer
+            center={[centre.lat, centre.lng]}
+            zoom={13}
+            scrollWheelZoom
+            className="h-full min-h-[190px] w-full"
+            attributionControl={false}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+            <Marker position={[centre.lat, centre.lng]} icon={userIcon}>
+              <Popup>You are here</Popup>
+            </Marker>
+            {nearest.map((place) => (
+              <Marker
+                key={place.id}
+                position={[place.lat, place.lng]}
+                icon={markerIcon(place, activeId === place.id)}
+                eventHandlers={{ click: () => onActive(place.id) }}
+              >
+                <Popup>
+                  <strong>{place.venue}</strong>
+                  <br />
+                  {place.product ?? place.suburb}
+                  <br />
+                  {place.price != null ? `${money(place.price)} ${place.unit ?? ""}` : "No price yet"}
+                </Popup>
+              </Marker>
+            ))}
+            <FitMap centre={centre} listings={nearest} />
+          </MapContainer>
         </div>
         <div className="hidden gap-2 overflow-auto lg:grid">
-          {nearest.map((listing) => (
+          {nearest.slice(0, 10).map((place) => (
             <button
-              key={listing.id}
+              key={place.id}
               type="button"
-              onClick={() => onActive(listing.id)}
+              onClick={() => onActive(place.id)}
               className={`rounded border p-3 text-left ${
-                activeId === listing.id ? "border-[#245c3b] bg-[#edf7ef]" : "border-black/10 bg-white"
+                activeId === place.id ? "border-[#245c3b] bg-[#edf7ef]" : "border-black/10 bg-white"
               }`}
             >
-              <p className="font-black">{listing.venue}</p>
-              <p className="text-sm text-black/55">{listing.product ?? listing.suburb}</p>
+              <p className="font-black">{place.venue}</p>
+              <p className="text-sm text-black/55">{place.product ?? place.suburb}</p>
               <p className="mt-1 text-sm font-black text-[#245c3b]">
-                {listing.price != null ? money(listing.price) : "No price yet"} · {(listing.distanceKm ?? 0).toFixed(1)} km
+                {place.price != null ? money(place.price) : "No price yet"} · {(place.distanceKm ?? 0).toFixed(1)} km
               </p>
             </button>
           ))}
@@ -95,3 +155,5 @@ export default function BeerMap({ listings, centre, activeId, onActive }: Props)
     </section>
   );
 }
+
+export type BeerMapProps = Props;

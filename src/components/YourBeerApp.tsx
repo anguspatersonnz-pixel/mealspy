@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Listing, ListingType, money, regionCentres, regions, styles, type Venue } from "@/lib/data";
-import BeerMap, { type MapPlace } from "./BeerMap";
+import BeerMapShell from "./BeerMapShell";
+import type { MapPlace } from "./BeerMap";
 
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
@@ -246,7 +247,7 @@ export default function YourBeerApp() {
 
           <div className="grid h-[calc(100%-57px)] min-h-0 grid-rows-[44%_56%] lg:grid-cols-[1fr_360px] lg:grid-rows-1">
             <div className="min-h-0 border-b border-black/10 lg:border-b-0 lg:border-r">
-              <BeerMap listings={mapPlaces} centre={coords} activeId={activePlace?.id ?? null} onActive={setActiveId} />
+              <BeerMapShell listings={mapPlaces} centre={coords} activeId={activePlace?.id ?? null} onActive={setActiveId} />
             </div>
             <div className="min-h-0 overflow-auto p-2">
               <div className="grid gap-2">
