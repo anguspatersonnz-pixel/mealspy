@@ -75,6 +75,46 @@ export async function addSubmittedListing(listing: Listing) {
   return listing;
 }
 
+export async function updateSubmittedListing(id: string, updates: Partial<Listing>) {
+  const listings = await getSubmittedListings();
+  const existing = listings.find((listing) => listing.id === id);
+  if (!existing) return null;
+  const updated = { ...existing, ...updates, id };
+
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("listings")
+      .update(listingToRow(updated))
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (!error && data) return listingFromRow(data as ListingRow);
+    throw new Error(error?.message ?? "Could not update listing");
+  }
+
+  await writeJson(
+    listingsFile,
+    listings.map((listing) => (listing.id === id ? updated : listing)),
+  );
+  return updated;
+}
+
+export async function deleteSubmittedListing(id: string) {
+  if (hasSupabase && supabaseAdmin) {
+    const { error } = await supabaseAdmin.from("listings").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  const listings = await getSubmittedListings();
+  await writeJson(
+    listingsFile,
+    listings.filter((listing) => listing.id !== id),
+  );
+  return listings.some((listing) => listing.id === id);
+}
+
 export async function getApplications() {
   return readJson<SellerApplication[]>(applicationsFile, []);
 }
@@ -107,6 +147,11 @@ export async function getVenues() {
 
   const localVenues = await readJson<Venue[]>(venuesFile, []);
   return [...localVenues, ...starterVenues];
+}
+
+export async function getVenue(id: string) {
+  const venues = await getVenues();
+  return venues.find((venue) => venue.id === id) ?? null;
 }
 
 export async function getVenuesNear(params: {

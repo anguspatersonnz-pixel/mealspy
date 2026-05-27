@@ -19,6 +19,7 @@ export const supabaseAdmin = hasSupabase
 
 export type ListingRow = {
   id: string;
+  venue_id: string | null;
   type: Listing["type"];
   venue: string;
   product: string;
@@ -62,6 +63,7 @@ export function listingFromRow(row: ListingRow): Listing {
 
   return {
     id: row.id,
+    venueId: row.venue_id ?? undefined,
     type: row.type,
     venue: row.venue,
     product: row.product,
@@ -82,6 +84,7 @@ export function listingFromRow(row: ListingRow): Listing {
 export function listingToRow(listing: Listing): Omit<ListingRow, "created_at"> {
   return {
     id: listing.id,
+    venue_id: listing.venueId ?? null,
     type: listing.type,
     venue: listing.venue,
     product: listing.product,

@@ -13,6 +13,7 @@ export type AlcoholStyle =
 
 export type Listing = {
   id: string;
+  venueId?: string;
   type: ListingType;
   venue: string;
   product: string;

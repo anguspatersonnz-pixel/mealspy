@@ -2,10 +2,12 @@
 
 import {
   Beer,
+  Bell,
   Building2,
   LocateFixed,
   MapPinned,
   Menu,
+  Search,
   SlidersHorizontal,
   Store,
   X,
@@ -16,6 +18,7 @@ import { Listing, ListingType, money, regionCentres, regions, styles, type Venue
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
 type Panel = "filters" | "post" | "data" | null;
+type MenuAction = Tab | "map" | "post" | "data";
 
 const tabs: Array<{ label: string; type: Tab; icon: React.ReactNode }> = [
   { label: "Bottle shops", type: "store", icon: <Store className="h-4 w-4" /> },
@@ -30,12 +33,20 @@ export default function YourBeerApp() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(regionCentres.Auckland);
   const [radius, setRadius] = useState(5);
   const [style, setStyle] = useState("all");
-  const [sort, setSort] = useState<SortMode>("price");
+  const [sort, setSort] = useState<SortMode>("distance");
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<Listing[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [askedForLocation, setAskedForLocation] = useState(false);
+
+  useEffect(() => {
+    if (askedForLocation) return;
+    setAskedForLocation(true);
+    locate();
+  }, [askedForLocation]);
 
   useEffect(() => {
     if (!coords) {
@@ -68,13 +79,24 @@ export default function YourBeerApp() {
       .catch(() => setVenues([]));
   }, [coords, radius, region, style, tab]);
 
+  const searchedResults = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    if (!search) return results;
+
+    return results.filter((listing) =>
+      [listing.product, listing.venue, listing.suburb, listing.special, listing.style]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(search)),
+    );
+  }, [query, results]);
+
   const sorted = useMemo(() => {
-    return [...results].sort((a, b) => {
+    return [...searchedResults].sort((a, b) => {
       if (sort === "distance") return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
       if (sort === "fresh") return a.updatedMinutesAgo - b.updatedMinutesAgo;
       return a.price - b.price;
     });
-  }, [results, sort]);
+  }, [searchedResults, sort]);
 
   const nearbyPlaces = useMemo(() => {
     const priced = sorted.map((listing) => ({
@@ -92,8 +114,13 @@ export default function YourBeerApp() {
     }));
 
     const pricedNames = new Set(priced.map((listing) => `${listing.venue}-${listing.suburb}`.toLowerCase()));
+    const search = query.trim().toLowerCase();
     const unpriced = venues
       .filter((venue) => !pricedNames.has(`${venue.name}-${venue.suburb}`.toLowerCase()))
+      .filter((venue) => {
+        if (!search) return true;
+        return [venue.name, venue.suburb, venue.type].some((value) => String(value).toLowerCase().includes(search));
+      })
       .map((venue) => ({
         id: venue.id,
         type: venue.type,
@@ -106,7 +133,7 @@ export default function YourBeerApp() {
       }));
 
     return [...priced, ...unpriced];
-  }, [sorted, venues]);
+  }, [query, sorted, venues]);
 
   const best = sorted[0];
   const activeListing = sorted.find((listing) => listing.id === activeId) ?? best;
@@ -130,7 +157,9 @@ export default function YourBeerApp() {
       (position) => {
         setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
         setRegion("Near me");
-        setNotice("Showing store names near you.");
+        setTab("store");
+        setSort("distance");
+        setNotice("Showing the nearest bottle shops first.");
       },
       () => {
         setCoords(regionCentres.Wellington);
@@ -139,6 +168,19 @@ export default function YourBeerApp() {
       },
       { enableHighAccuracy: true, timeout: 6000 },
     );
+  }
+
+  function chooseMenuAction(action: MenuAction) {
+    if (action === "map") {
+      window.location.href = "/map";
+      return;
+    }
+    if (action === "post" || action === "data") {
+      setPanel(action);
+      return;
+    }
+    setTab(action);
+    if (action === "store") setSort("distance");
   }
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
@@ -191,16 +233,17 @@ export default function YourBeerApp() {
   }
 
   return (
-    <div className="h-dvh overflow-hidden bg-[#f7efe0] text-[#1f1b16]">
-      <header className="flex min-h-[92px] items-center justify-between border-b border-[#2f2417]/15 bg-[#f2c35d] px-3 shadow-sm sm:px-5">
+    <div className="grid h-dvh grid-rows-[auto_1fr] overflow-hidden bg-[#f7efe0] text-[#1f1b16]">
+      <div className="border-b border-[#2f2417]/10 bg-[#f2c35d] shadow-sm">
+        <header className="hidden min-h-[86px] items-center justify-between px-5 md:flex">
         <a href="#top" className="flex min-w-0 items-center gap-3">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-4xl shadow-[4px_4px_0_#2f2417]">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-3xl shadow-[4px_4px_0_#2f2417]">
             🍺
           </span>
           <span className="min-w-0">
             <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer</span>
             <span className="mt-1 block text-xs font-black uppercase text-[#5b3519] sm:text-sm">
-              Nearby bottle shops, pubs, and makers
+              Nearest liquor stores first, pubs and map one tap away
             </span>
           </span>
         </a>
@@ -214,22 +257,40 @@ export default function YourBeerApp() {
         </button>
       </header>
 
-      <nav className="grid h-[54px] grid-cols-3 gap-1 border-b border-[#2f2417]/10 bg-[#f7efe0] p-1">
-        {tabs.map((item) => (
-          <button
-            key={item.type}
-            onClick={() => setTab(item.type)}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-black ${
-              tab === item.type ? "bg-[#245c3b] text-white shadow-sm" : "bg-[#fffaf0] text-black/60"
-            }`}
+        <div className="grid grid-cols-[1fr_auto] gap-2 bg-[#fff8e8] p-2 sm:grid-cols-[1fr_auto_auto] sm:items-center md:px-5">
+          <label className="relative block min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search beer, store, or suburb"
+              className="h-12 w-full rounded-md border-2 border-[#2f2417]/10 bg-white pl-10 pr-3 text-base font-bold outline-none ring-[#245c3b] transition placeholder:text-black/35 focus:ring-2"
+            />
+          </label>
+          <select
+            value={tab}
+            onChange={(event) => chooseMenuAction(event.target.value as MenuAction)}
+            className="col-span-2 h-12 min-w-0 rounded-md border-2 border-[#2f2417]/10 bg-white px-3 text-sm font-black text-[#245c3b] outline-none ring-[#245c3b] focus:ring-2 sm:col-span-1"
+            aria-label="Choose what to show"
           >
-            {item.icon}
-            <span>{item.label}</span>
+            <option value="store">Liquor stores</option>
+            <option value="bar">Bars</option>
+            <option value="maker">Local makers</option>
+            <option value="map">Map</option>
+            <option value="post">Post a price</option>
+            <option value="data">Data</option>
+          </select>
+          <button
+            type="button"
+            className="col-start-2 row-start-1 grid h-12 w-12 place-items-center rounded-md border-2 border-[#2f2417]/10 bg-white text-[#245c3b] sm:col-start-auto"
+            aria-label="Notifications"
+          >
+            <Bell className="h-5 w-5" />
           </button>
-        ))}
-      </nav>
+        </div>
+      </div>
 
-      <main id="top" className="grid h-[calc(100dvh-146px)] grid-rows-[auto_1fr] gap-2 overflow-hidden p-2 lg:grid-cols-[320px_1fr] lg:grid-rows-1 lg:p-4">
+      <main id="top" className="grid min-h-0 grid-rows-[auto_1fr] gap-2 overflow-hidden p-2 lg:grid-cols-[320px_1fr] lg:grid-rows-1 lg:p-4">
         <aside className="hidden rounded-md border-2 border-[#2f2417]/10 bg-[#fffaf0] p-4 shadow-sm lg:block">
           <Controls
             region={region}
@@ -250,7 +311,7 @@ export default function YourBeerApp() {
             <div>
               <h1 className="text-lg font-black">{tabs.find((item) => item.type === tab)?.label}</h1>
               <p className="text-xs font-bold text-black/45">
-                {loading ? "Loading" : `${nearbyPlaces.length} nearby`} {best ? `· from ${money(best.price)}` : ""}
+                {loading ? "Loading" : `${nearbyPlaces.length} nearby`} {best ? `· nearest ${(best.distanceKm ?? 0).toFixed(1)} km` : ""}
               </p>
             </div>
             <div className="flex gap-2">

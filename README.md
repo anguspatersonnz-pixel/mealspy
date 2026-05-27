@@ -28,6 +28,57 @@ YOURBEER_ADMIN_TOKEN=...
 
 Without those env vars, the API falls back to local `.data` files for development.
 
+## Seller and specials backend
+
+The high-level model is:
+
+- **Sellers** are venues: bottle shops, bars/pubs, or makers in the `venues` table.
+- **Specials/prices** are listings in the `listings` table, linked back to a seller with `venue_id`.
+- The public app reads from `/api/nearby`, so anything saved through the admin specials API shows up in the customer list automatically.
+
+Admin routes accept either `x-admin-key: YOURBEER_ADMIN_TOKEN` or `Authorization: Bearer YOURBEER_ADMIN_TOKEN`. In local development, they also work without a token if no token is configured.
+
+List sellers:
+
+```bash
+curl http://localhost:3000/api/admin/sellers \
+  -H "x-admin-key: YOURBEER_ADMIN_TOKEN"
+```
+
+Create or update a seller:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/sellers \
+  -H "Content-Type: application/json" \
+  -H "x-admin-key: YOURBEER_ADMIN_TOKEN" \
+  -d '{"id":"seller-goldings","type":"bar","name":"Goldings Free Dive","address":"14 Leeds Street","suburb":"Te Aro","city":"Wellington","region":"Wellington","lat":-41.2939,"lng":174.7749}'
+```
+
+Add a pub price or special:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/specials \
+  -H "Content-Type: application/json" \
+  -H "x-admin-key: YOURBEER_ADMIN_TOKEN" \
+  -d '{"sellerId":"seller-goldings","product":"Guest pale ale","style":"pale ale","price":8,"unit":"pint","special":"Happy hour until 7pm","openTonight":true}'
+```
+
+Update a special:
+
+```bash
+curl -X PATCH http://localhost:3000/api/admin/specials/SPECIAL_ID \
+  -H "Content-Type: application/json" \
+  -H "x-admin-key: YOURBEER_ADMIN_TOKEN" \
+  -d '{"price":7.5,"special":"Extended until 8pm"}'
+```
+
+Remove a special:
+
+```bash
+curl -X DELETE http://localhost:3000/api/admin/specials/SPECIAL_ID \
+  -H "x-admin-key: YOURBEER_ADMIN_TOKEN"
+```
+
 ## Import OpenStreetMap venues
 
 For local dev, pull alcohol stores, pubs, bars, and brewery-tagged venues from OpenStreetMap via Overpass:
