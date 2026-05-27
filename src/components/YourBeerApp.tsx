@@ -17,8 +17,8 @@ import { Listing, ListingType, money, regionCentres, regions, styles, type Venue
 
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
-type Panel = "filters" | "post" | "data" | null;
-type MenuAction = Tab | "map" | "post" | "data";
+type Panel = "filters" | "post" | "menu" | null;
+type MenuAction = Tab | "map" | "post";
 
 const tabs: Array<{ label: string; type: Tab; icon: React.ReactNode }> = [
   { label: "Bottle shops", type: "store", icon: <Store className="h-4 w-4" /> },
@@ -175,12 +175,13 @@ export default function YourBeerApp() {
       window.location.href = "/map";
       return;
     }
-    if (action === "post" || action === "data") {
+    if (action === "post") {
       setPanel(action);
       return;
     }
     setTab(action);
     if (action === "store") setSort("distance");
+    setPanel(null);
   }
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
@@ -205,6 +206,10 @@ export default function YourBeerApp() {
   async function submitListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const listingRegion = String(form.get("region") ?? region);
+    const fallback = regionCentres[listingRegion] ?? coords ?? regionCentres.Wellington;
+    const lat = Number(form.get("lat") || fallback.lat);
+    const lng = Number(form.get("lng") || fallback.lng);
     const response = await fetch("/api/listings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -217,9 +222,9 @@ export default function YourBeerApp() {
         unit: form.get("unit"),
         suburb: form.get("suburb"),
         special: form.get("special"),
-        region,
-        lat: coords?.lat ?? regionCentres.Wellington.lat,
-        lng: coords?.lng ?? regionCentres.Wellington.lng,
+        region: listingRegion,
+        lat,
+        lng,
         openTonight: true,
       }),
     });
@@ -242,14 +247,11 @@ export default function YourBeerApp() {
           </span>
           <span className="min-w-0">
             <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer</span>
-            <span className="mt-1 block text-xs font-black uppercase text-[#5b3519] sm:text-sm">
-              Nearest liquor stores first, pubs and map one tap away
-            </span>
           </span>
         </a>
         <button
           type="button"
-          onClick={() => setPanel("data")}
+          onClick={() => setPanel("menu")}
           className="grid h-11 w-11 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] shadow-[3px_3px_0_#2f2417]"
           aria-label="Menu"
         >
@@ -257,7 +259,7 @@ export default function YourBeerApp() {
         </button>
       </header>
 
-        <div className="grid grid-cols-[1fr_auto] gap-2 bg-[#fff8e8] p-2 sm:grid-cols-[1fr_auto_auto] sm:items-center md:px-5">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2 bg-[#fff8e8] p-2 md:grid-cols-[1fr_auto] md:px-5">
           <label className="relative block min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
             <input
@@ -267,25 +269,20 @@ export default function YourBeerApp() {
               className="h-12 w-full rounded-md border-2 border-[#2f2417]/10 bg-white pl-10 pr-3 text-base font-bold outline-none ring-[#245c3b] transition placeholder:text-black/35 focus:ring-2"
             />
           </label>
-          <select
-            value={tab}
-            onChange={(event) => chooseMenuAction(event.target.value as MenuAction)}
-            className="col-span-2 h-12 min-w-0 rounded-md border-2 border-[#2f2417]/10 bg-white px-3 text-sm font-black text-[#245c3b] outline-none ring-[#245c3b] focus:ring-2 sm:col-span-1"
-            aria-label="Choose what to show"
-          >
-            <option value="store">Liquor stores</option>
-            <option value="bar">Bars</option>
-            <option value="maker">Local makers</option>
-            <option value="map">Map</option>
-            <option value="post">Post a price</option>
-            <option value="data">Data</option>
-          </select>
           <button
             type="button"
-            className="col-start-2 row-start-1 grid h-12 w-12 place-items-center rounded-md border-2 border-[#2f2417]/10 bg-white text-[#245c3b] sm:col-start-auto"
+            className="grid h-12 w-12 place-items-center rounded-md border-2 border-[#2f2417]/10 bg-white text-[#245c3b]"
             aria-label="Notifications"
           >
             <Bell className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPanel("menu")}
+            className="grid h-12 w-12 place-items-center rounded-md border-2 border-[#2f2417]/10 bg-white text-[#245c3b] md:hidden"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -416,7 +413,7 @@ export default function YourBeerApp() {
           >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-xl font-black">
-                {panel === "filters" ? "Search" : panel === "post" ? "Post" : "Data"}
+                {panel === "filters" ? "Search" : panel === "post" ? "Post" : "Menu"}
               </h2>
               <button onClick={() => setPanel(null)} className="grid h-9 w-9 place-items-center rounded bg-white">
                 <X className="h-5 w-5" />
@@ -441,9 +438,10 @@ export default function YourBeerApp() {
               <Forms
                 submitApplication={submitApplication}
                 submitListing={submitListing}
+                region={region}
               />
             )}
-            {panel === "data" && <DataPlan />}
+            {panel === "menu" && <DirectoryMenu activeTab={tab} chooseMenuAction={chooseMenuAction} />}
           </div>
         </div>
       )}
@@ -520,9 +518,11 @@ function Controls({
 function Forms({
   submitApplication,
   submitListing,
+  region,
 }: {
   submitApplication: (event: FormEvent<HTMLFormElement>) => void;
   submitListing: (event: FormEvent<HTMLFormElement>) => void;
+  region: string;
 }) {
   return (
     <div className="grid gap-4">
@@ -557,8 +557,20 @@ function Forms({
           </select>
           <input name="price" required min="0" step="0.1" type="number" placeholder="Price" className="control" />
           <input name="unit" required placeholder="Unit" className="control" />
-          <input name="suburb" required placeholder="Suburb" className="control" />
           <input name="special" placeholder="Special" className="control" />
+          <fieldset className="grid gap-3 rounded-md border border-black/10 bg-[#fbf6ea] p-3">
+            <legend className="px-1 text-sm font-black text-black/60">Location</legend>
+            <input name="suburb" required placeholder="Suburb" className="control" />
+            <select name="region" defaultValue={regions.includes(region) ? region : "Wellington"} className="control">
+              {regions.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <input name="lat" inputMode="decimal" placeholder="Lat optional" className="control min-w-0" />
+              <input name="lng" inputMode="decimal" placeholder="Lng optional" className="control min-w-0" />
+            </div>
+          </fieldset>
           <button className="button bg-[#245c3b] text-white">Save price</button>
         </form>
       </section>
@@ -566,26 +578,45 @@ function Forms({
   );
 }
 
-function DataPlan() {
+function DirectoryMenu({
+  activeTab,
+  chooseMenuAction,
+}: {
+  activeTab: Tab;
+  chooseMenuAction: (action: MenuAction) => void;
+}) {
   return (
-    <div className="space-y-3">
-      {[
-        ["Week 1", "Manually add 20 common products in Wellington and Auckland."],
-        ["Venues", "Ask pubs to post one nightly special. Give them the Post panel link."],
-        ["Makers", "Get 10 local breweries/cideries to apply and list direct packs."],
-        ["Shoppers", "Add receipt/photo upload next, then confirmations."],
-      ].map(([title, text]) => (
-        <div key={title} className="rounded-lg border border-black/10 bg-white p-4">
-          <h3 className="font-black">{title}</h3>
-          <p className="mt-1 text-sm text-black/60">{text}</p>
-        </div>
+    <div className="grid gap-2">
+      {tabs.map((item) => (
+        <button
+          key={item.type}
+          type="button"
+          onClick={() => chooseMenuAction(item.type)}
+          className={`flex h-12 items-center gap-3 rounded-md border px-3 text-left text-sm font-black ${
+            activeTab === item.type
+              ? "border-[#245c3b] bg-[#245c3b] text-white"
+              : "border-black/10 bg-white text-[#1f1b16]"
+          }`}
+        >
+          {item.icon}
+          {item.label}
+        </button>
       ))}
-      <div className="rounded-lg border border-black/10 bg-white p-4">
-        <h3 className="font-black">Bulk import fields</h3>
-        <p className="mt-1 text-sm text-black/60">
-          type, venue, product, style, price, unit, suburb, region, lat, lng, special
-        </p>
-      </div>
+      <button
+        type="button"
+        onClick={() => chooseMenuAction("map")}
+        className="flex h-12 items-center gap-3 rounded-md border border-black/10 bg-white px-3 text-left text-sm font-black text-[#1f1b16]"
+      >
+        <MapPinned className="h-4 w-4" />
+        Map
+      </button>
+      <button
+        type="button"
+        onClick={() => chooseMenuAction("post")}
+        className="mt-2 flex h-12 items-center justify-center rounded-md bg-[#245c3b] px-3 text-sm font-black text-white"
+      >
+        Post a price
+      </button>
     </div>
   );
 }
