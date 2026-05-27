@@ -100,22 +100,27 @@ export default function MapPage() {
   }
 
   return (
-    <div className="grid h-dvh grid-rows-[auto_1fr] overflow-hidden bg-[#fbf6ea] text-[#1f1b16]">
-      <header className="flex h-14 items-center justify-between border-b border-black/10 bg-[#fbf6ea] px-3">
-        <a href="/" className="flex items-center gap-2 text-lg font-black">
-          <span className="grid h-8 w-8 place-items-center rounded bg-[#245c3b] text-white">
-            <Beer className="h-4 w-4" />
+    <div className="grid h-dvh grid-rows-[auto_1fr] overflow-hidden bg-[#f7efe0] text-[#1f1b16]">
+      <header className="flex min-h-[92px] items-center justify-between border-b border-[#2f2417]/15 bg-[#f2c35d] px-3 shadow-sm sm:px-5">
+        <a href="/" className="flex min-w-0 items-center gap-3">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-4xl shadow-[4px_4px_0_#2f2417]">
+            🍺
           </span>
-          yourbeer map
+          <span className="min-w-0">
+            <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer map</span>
+            <span className="mt-1 block text-xs font-black uppercase text-[#5b3519] sm:text-sm">
+              Tap a spot, check the name, go get it
+            </span>
+          </span>
         </a>
-        <a href="/" className="button bg-white text-[#245c3b] ring-1 ring-black/10">
+        <a href="/" className="button border-2 border-[#2f2417] bg-[#fff7df] text-[#245c3b] shadow-[3px_3px_0_#2f2417]">
           <Store className="h-4 w-4" />
           List
         </a>
       </header>
 
       <main className="grid min-h-0 gap-2 p-2 lg:grid-cols-[320px_1fr] lg:p-4">
-        <aside className="rounded-lg border border-black/10 bg-white p-3 shadow-sm">
+        <aside className="rounded-md border-2 border-[#2f2417]/10 bg-[#fffaf0] p-3 shadow-sm">
           <div className="grid gap-3">
             <label className="block">
               <span className="text-sm font-bold text-black/55">City</span>
@@ -168,7 +173,7 @@ export default function MapPage() {
           </div>
         </aside>
 
-        <section className="min-h-0 overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm">
+        <section className="min-h-0 overflow-hidden rounded-md border-2 border-[#2f2417]/10 bg-white shadow-sm">
           <BeerMapShell listings={places} centre={coords} activeId={activeId} onActive={setActiveId} />
         </section>
       </main>

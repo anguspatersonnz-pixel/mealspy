@@ -191,31 +191,36 @@ export default function YourBeerApp() {
   }
 
   return (
-    <div className="h-dvh overflow-hidden bg-[#fbf6ea] text-[#1f1b16]">
-      <header className="flex h-14 items-center justify-between border-b border-black/10 bg-[#fbf6ea] px-3">
-        <a href="#top" className="flex items-center gap-2 text-lg font-black">
-          <span className="grid h-8 w-8 place-items-center rounded bg-[#245c3b] text-white">
-            <Beer className="h-4 w-4" />
+    <div className="h-dvh overflow-hidden bg-[#f7efe0] text-[#1f1b16]">
+      <header className="flex min-h-[92px] items-center justify-between border-b border-[#2f2417]/15 bg-[#f2c35d] px-3 shadow-sm sm:px-5">
+        <a href="#top" className="flex min-w-0 items-center gap-3">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-4xl shadow-[4px_4px_0_#2f2417]">
+            🍺
           </span>
-          yourbeer
+          <span className="min-w-0">
+            <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer</span>
+            <span className="mt-1 block text-xs font-black uppercase text-[#5b3519] sm:text-sm">
+              Nearby bottle shops, pubs, and makers
+            </span>
+          </span>
         </a>
         <button
           type="button"
           onClick={() => setPanel("data")}
-          className="grid h-9 w-9 place-items-center rounded bg-white shadow-sm"
+          className="grid h-11 w-11 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] shadow-[3px_3px_0_#2f2417]"
           aria-label="Menu"
         >
           <Menu className="h-5 w-5" />
         </button>
       </header>
 
-      <nav className="grid h-[52px] grid-cols-3 gap-1 border-b border-black/10 bg-[#fbf6ea] p-1">
+      <nav className="grid h-[54px] grid-cols-3 gap-1 border-b border-[#2f2417]/10 bg-[#f7efe0] p-1">
         {tabs.map((item) => (
           <button
             key={item.type}
             onClick={() => setTab(item.type)}
             className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-black ${
-              tab === item.type ? "bg-[#245c3b] text-white" : "bg-white text-black/60"
+              tab === item.type ? "bg-[#245c3b] text-white shadow-sm" : "bg-[#fffaf0] text-black/60"
             }`}
           >
             {item.icon}
@@ -224,8 +229,8 @@ export default function YourBeerApp() {
         ))}
       </nav>
 
-      <main id="top" className="grid h-[calc(100dvh-108px)] grid-rows-[auto_1fr] gap-2 overflow-hidden p-2 lg:grid-cols-[320px_1fr] lg:grid-rows-1 lg:p-4">
-        <aside className="hidden rounded-lg border border-black/10 bg-white p-4 shadow-sm lg:block">
+      <main id="top" className="grid h-[calc(100dvh-146px)] grid-rows-[auto_1fr] gap-2 overflow-hidden p-2 lg:grid-cols-[320px_1fr] lg:grid-rows-1 lg:p-4">
+        <aside className="hidden rounded-md border-2 border-[#2f2417]/10 bg-[#fffaf0] p-4 shadow-sm lg:block">
           <Controls
             region={region}
             chooseRegion={chooseRegion}
@@ -240,8 +245,8 @@ export default function YourBeerApp() {
           />
         </aside>
 
-        <section className="min-h-0 overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-black/10 px-3 py-2">
+        <section className="min-h-0 overflow-hidden rounded-md border-2 border-[#2f2417]/10 bg-[#fffaf0] shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#2f2417]/10 bg-white/55 px-3 py-2">
             <div>
               <h1 className="text-lg font-black">{tabs.find((item) => item.type === tab)?.label}</h1>
               <p className="text-xs font-bold text-black/45">
@@ -278,7 +283,7 @@ export default function YourBeerApp() {
                     {loading ? "Checking prices and venue data" : `${nearbyPlaces.length} places within ${radius} km`}
                   </p>
                 </div>
-                <a href="/map" className="button bg-white text-[#245c3b] ring-1 ring-black/10">
+                <a href="/map" className="button border-2 border-[#245c3b] bg-white text-[#245c3b] shadow-[3px_3px_0_#245c3b]">
                   <MapPinned className="h-4 w-4" />
                   Map
                 </a>
@@ -289,8 +294,8 @@ export default function YourBeerApp() {
                 {sorted.map((listing) => (
                   <article
                     key={listing.id}
-                    className={`rounded-lg border bg-white p-3 shadow-sm ${
-                      activeListing?.id === listing.id ? "border-[#245c3b]" : "border-black/10"
+                    className={`rounded-md border bg-white p-3 shadow-sm ${
+                      activeListing?.id === listing.id ? "border-[#245c3b]" : "border-[#2f2417]/10"
                     }`}
                     onMouseEnter={() => setActiveId(listing.id)}
                     onClick={() => setActiveId(listing.id)}
@@ -313,8 +318,8 @@ export default function YourBeerApp() {
                 {nearbyPlaces.filter((place) => !place.hasPrice).map((place) => (
                   <article
                     key={place.id}
-                    className={`rounded-lg border bg-white p-3 shadow-sm ${
-                      activePlace?.id === place.id ? "border-[#245c3b]" : "border-black/10"
+                    className={`rounded-md border bg-white p-3 shadow-sm ${
+                      activePlace?.id === place.id ? "border-[#245c3b]" : "border-[#2f2417]/10"
                     }`}
                     onMouseEnter={() => setActiveId(place.id)}
                     onClick={() => setActiveId(place.id)}
