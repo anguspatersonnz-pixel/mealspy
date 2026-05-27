@@ -4,6 +4,7 @@ import {
   Beer,
   Building2,
   LocateFixed,
+  MapPinned,
   Menu,
   SlidersHorizontal,
   Store,
@@ -11,8 +12,6 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Listing, ListingType, money, regionCentres, regions, styles, type Venue } from "@/lib/data";
-import BeerMapShell from "./BeerMapShell";
-import type { MapPlace } from "./BeerMap";
 
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
@@ -27,8 +26,8 @@ const tabs: Array<{ label: string; type: Tab; icon: React.ReactNode }> = [
 export default function YourBeerApp() {
   const [tab, setTab] = useState<Tab>("store");
   const [panel, setPanel] = useState<Panel>(null);
-  const [region, setRegion] = useState("Choose city");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [region, setRegion] = useState("Auckland");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(regionCentres.Auckland);
   const [radius, setRadius] = useState(5);
   const [style, setStyle] = useState("all");
   const [sort, setSort] = useState<SortMode>("price");
@@ -37,13 +36,6 @@ export default function YourBeerApp() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [askedForLocation, setAskedForLocation] = useState(false);
-
-  useEffect(() => {
-    if (askedForLocation) return;
-    setAskedForLocation(true);
-    locate();
-  }, [askedForLocation]);
 
   useEffect(() => {
     if (!coords) {
@@ -84,8 +76,7 @@ export default function YourBeerApp() {
     });
   }, [results, sort]);
 
-  const best = sorted[0];
-  const mapPlaces: MapPlace[] = useMemo(() => {
+  const nearbyPlaces = useMemo(() => {
     const priced = sorted.map((listing) => ({
       id: listing.id,
       type: listing.type,
@@ -117,8 +108,9 @@ export default function YourBeerApp() {
     return [...priced, ...unpriced];
   }, [sorted, venues]);
 
+  const best = sorted[0];
   const activeListing = sorted.find((listing) => listing.id === activeId) ?? best;
-  const activePlace = mapPlaces.find((place) => place.id === activeId) ?? mapPlaces[0];
+  const activePlace = nearbyPlaces.find((place) => place.id === activeId) ?? nearbyPlaces[0];
 
   function chooseRegion(nextRegion: string) {
     setRegion(nextRegion);
@@ -138,7 +130,7 @@ export default function YourBeerApp() {
       (position) => {
         setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
         setRegion("Near me");
-        setNotice("Using your location.");
+        setNotice("Showing store names near you.");
       },
       () => {
         setCoords(regionCentres.Wellington);
@@ -253,7 +245,7 @@ export default function YourBeerApp() {
             <div>
               <h1 className="text-lg font-black">{tabs.find((item) => item.type === tab)?.label}</h1>
               <p className="text-xs font-bold text-black/45">
-                {loading ? "Loading" : `${mapPlaces.length} nearby`} {best ? `· from ${money(best.price)}` : ""}
+                {loading ? "Loading" : `${nearbyPlaces.length} nearby`} {best ? `· from ${money(best.price)}` : ""}
               </p>
             </div>
             <div className="flex gap-2">
@@ -266,24 +258,33 @@ export default function YourBeerApp() {
             </div>
           </div>
 
-          <div className="grid h-[calc(100%-57px)] min-h-0 grid-rows-[44%_56%] lg:grid-cols-[1fr_360px] lg:grid-rows-1">
-            <div className="min-h-0 border-b border-black/10 lg:border-b-0 lg:border-r">
-              {coords ? (
-                <BeerMapShell listings={mapPlaces} centre={coords} activeId={activePlace?.id ?? null} onActive={setActiveId} />
-              ) : (
-                <div className="grid h-full place-items-center bg-[#e8ecd8] p-6 text-center">
-                  <div>
-                    <p className="text-2xl font-black">Choose a city</p>
-                    <p className="mt-2 text-sm font-bold text-black/55">Or tap Near me to show real nearby stores.</p>
-                    <button onClick={locate} className="button mt-4 bg-[#245c3b] text-white">
-                      <LocateFixed className="h-4 w-4" />
-                      Near me
-                    </button>
-                  </div>
+          <div className="h-[calc(100%-57px)] min-h-0 overflow-auto p-2">
+            {!coords ? (
+              <div className="mb-2 grid min-h-[220px] place-items-center rounded-lg bg-[#e8ecd8] p-6 text-center">
+                <div>
+                  <p className="text-2xl font-black">Find nearby names</p>
+                  <p className="mt-2 text-sm font-bold text-black/55">Tap Near me or choose a city to show real stores and pubs.</p>
+                  <button onClick={locate} className="button mt-4 bg-[#245c3b] text-white">
+                    <LocateFixed className="h-4 w-4" />
+                    Near me
+                  </button>
                 </div>
-              )}
-            </div>
-            <div className="min-h-0 overflow-auto p-2">
+              </div>
+            ) : (
+              <div className="mb-2 grid gap-2 rounded-lg bg-[#edf7ef] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div>
+                  <p className="text-sm font-black text-[#245c3b]">Nearby venue names</p>
+                  <p className="text-xs font-bold text-black/55">
+                    {loading ? "Checking prices and venue data" : `${nearbyPlaces.length} places within ${radius} km`}
+                  </p>
+                </div>
+                <a href="/map" className="button bg-white text-[#245c3b] ring-1 ring-black/10">
+                  <MapPinned className="h-4 w-4" />
+                  Map
+                </a>
+              </div>
+            )}
+
               <div className="grid gap-2">
                 {sorted.map((listing) => (
                   <article
@@ -309,7 +310,7 @@ export default function YourBeerApp() {
                     </div>
                   </article>
                 ))}
-                {mapPlaces.filter((place) => !place.hasPrice).map((place) => (
+                {nearbyPlaces.filter((place) => !place.hasPrice).map((place) => (
                   <article
                     key={place.id}
                     className={`rounded-lg border bg-white p-3 shadow-sm ${
@@ -330,8 +331,13 @@ export default function YourBeerApp() {
                     </div>
                   </article>
                 ))}
+                {coords && !loading && nearbyPlaces.length === 0 && (
+                  <div className="rounded-lg border border-black/10 bg-white p-6 text-center">
+                    <p className="text-lg font-black">No places found nearby</p>
+                    <p className="mt-1 text-sm font-bold text-black/50">Try increasing the radius or choosing Auckland.</p>
+                  </div>
+                )}
               </div>
-            </div>
           </div>
         </section>
       </main>

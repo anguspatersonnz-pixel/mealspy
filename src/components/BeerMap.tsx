@@ -28,7 +28,7 @@ type Props = {
 };
 
 function markerIcon(place: MapPlace, active: boolean) {
-  const label = place.price != null ? money(place.price).replace("NZ", "") : "new";
+  const label = place.price != null ? money(place.price).replace("NZ", "") : shortName(place.venue);
   const bg = active ? "#1f1b16" : place.hasPrice ? "#245c3b" : "#ffffff";
   const color = active || place.hasPrice ? "#ffffff" : "#245c3b";
   const border = active ? "#f0bb4d" : "#ffffff";
@@ -49,11 +49,18 @@ function markerIcon(place: MapPlace, active: boolean) {
       font-size:12px;
       font-weight:900;
       box-shadow:0 6px 16px rgba(0,0,0,.22);
+      max-width:118px;
+      overflow:hidden;
+      text-overflow:ellipsis;
       white-space:nowrap;
     ">${label}</div>`,
-    iconSize: [50, 30],
-    iconAnchor: [25, 15],
+    iconSize: [90, 30],
+    iconAnchor: [45, 15],
   });
+}
+
+function shortName(name: string) {
+  return name.length > 18 ? `${name.slice(0, 17)}...` : name;
 }
 
 const userIcon = new DivIcon({

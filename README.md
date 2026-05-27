@@ -28,6 +28,20 @@ YOURBEER_ADMIN_TOKEN=...
 
 Without those env vars, the API falls back to local `.data` files for development.
 
+## Import OpenStreetMap venues
+
+For local dev, pull alcohol stores, pubs, bars, and brewery-tagged venues from OpenStreetMap via Overpass:
+
+```bash
+npm run import:osm
+```
+
+That writes `.data/venues.json`, which the app reads before the built-in starter venues. You can target another region with:
+
+```bash
+npm run import:osm -- --region Christchurch
+```
+
 ## Import starter data
 
 Venue locations first:
