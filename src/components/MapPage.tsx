@@ -18,12 +18,20 @@ const filters: Array<{ label: string; type: VenueFilter }> = [
 export default function MapPage() {
   const [region, setRegion] = useState("Auckland");
   const [coords, setCoords] = useState(regionCentres.Auckland);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [radius, setRadius] = useState(10);
   const [type, setType] = useState<VenueFilter>("all");
   const [venues, setVenues] = useState<Venue[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [askedForLocation, setAskedForLocation] = useState(false);
+
+  useEffect(() => {
+    if (askedForLocation) return;
+    setAskedForLocation(true);
+    locate();
+  }, [askedForLocation]);
 
   useEffect(() => {
     const params = new URLSearchParams({
@@ -60,13 +68,16 @@ export default function MapPage() {
   function chooseRegion(nextRegion: string) {
     setRegion(nextRegion);
     setCoords(regionCentres[nextRegion] ?? regionCentres.Auckland);
+    setAccuracy(null);
     setNotice("");
   }
 
   function locate() {
     if (!navigator.geolocation) {
+      setRegion("Auckland");
+      setCoords(regionCentres.Auckland);
+      setAccuracy(null);
       setNotice("Location unavailable. Showing Auckland.");
-      chooseRegion("Auckland");
       return;
     }
 
@@ -74,14 +85,17 @@ export default function MapPage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setAccuracy(position.coords.accuracy);
         setRegion("Near me");
-        setNotice("Showing venues near you.");
+        setNotice(`Using browser location within about ${formatAccuracy(position.coords.accuracy)}.`);
       },
       () => {
+        setRegion("Auckland");
+        setCoords(regionCentres.Auckland);
+        setAccuracy(null);
         setNotice("Location blocked. Showing Auckland.");
-        chooseRegion("Auckland");
       },
-      { enableHighAccuracy: true, timeout: 6000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }
 
@@ -145,6 +159,11 @@ export default function MapPage() {
             <p className="rounded bg-[#edf7ef] p-2 text-sm font-bold text-[#245c3b]">
               {loading ? "Loading venues" : `${venues.length} map locations`}
             </p>
+            {accuracy != null && (
+              <p className="rounded bg-black/5 p-2 text-sm font-bold text-black/60">
+                Accuracy: about {formatAccuracy(accuracy)}
+              </p>
+            )}
             {notice && <p className="text-sm font-bold text-black/55">{notice}</p>}
           </div>
         </aside>
@@ -155,4 +174,9 @@ export default function MapPage() {
       </main>
     </div>
   );
+}
+
+function formatAccuracy(metres: number) {
+  if (metres >= 1000) return `${(metres / 1000).toFixed(1)} km`;
+  return `${Math.round(metres)} m`;
 }
