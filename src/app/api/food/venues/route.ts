@@ -21,6 +21,32 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ venues, count: venues.length });
 }
 
+async function geocode(address: string, suburb: string, city: string): Promise<{ lat: number; lng: number } | null> {
+  // Build a progressively vaguer query: full address → suburb+city → city only
+  const queries = [
+    [address, suburb, city, "New Zealand"].filter(Boolean).join(", "),
+    [suburb, city, "New Zealand"].filter(Boolean).join(", "),
+    [city, "New Zealand"].join(", "),
+  ];
+
+  for (const q of queries) {
+    if (!q.trim()) continue;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=nz`,
+        { headers: { "User-Agent": "mealspy-nz/1.0 (cheapernz@gmail.com)" }, signal: AbortSignal.timeout(4000) }
+      );
+      const data = await res.json();
+      if (Array.isArray(data) && data[0]?.lat && data[0]?.lon) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch {
+      // try next query
+    }
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
@@ -28,6 +54,14 @@ export async function POST(request: NextRequest) {
   const { name, category, address, suburb, city, lat, lng, phone, website, description } = body;
   if (!name?.trim() || !city?.trim()) {
     return NextResponse.json({ error: "name and city are required" }, { status: 400 });
+  }
+
+  // Use provided coords, or geocode from the address
+  let resolvedLat = Number(lat) || 0;
+  let resolvedLng = Number(lng) || 0;
+  if (!resolvedLat || !resolvedLng) {
+    const coords = await geocode(address?.trim() ?? "", suburb?.trim() ?? "", city.trim());
+    if (coords) { resolvedLat = coords.lat; resolvedLng = coords.lng; }
   }
 
   const slug =
@@ -45,8 +79,8 @@ export async function POST(request: NextRequest) {
     address: address?.trim() ?? "",
     suburb: suburb?.trim() ?? "",
     city: city.trim(),
-    lat: Number(lat) || 0,
-    lng: Number(lng) || 0,
+    lat: resolvedLat,
+    lng: resolvedLng,
     phone: phone?.trim() ?? null,
     website: website?.trim() ?? null,
     description: description?.trim() ?? null,
@@ -56,7 +90,7 @@ export async function POST(request: NextRequest) {
 
   await addFoodVenue(venue);
   return NextResponse.json(
-    { id: venue.id, slug: venue.slug, claim_token: venue.claimToken },
+    { id: venue.id, slug: venue.slug, claim_token: venue.claimToken, geocoded: resolvedLat !== 0 },
     { status: 201 }
   );
 }
