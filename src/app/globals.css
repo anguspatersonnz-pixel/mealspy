@@ -4,64 +4,69 @@
 
 :root {
   color-scheme: light;
+  --food: #e8472a;
+  --food-dark: #c73d22;
+  --food-light: #fff4f2;
+  --drinks: #1a6b3c;
+  --drinks-light: #f0faf4;
+  --ink: #1a1714;
+  --ink-secondary: #6b6560;
+  --ink-muted: #a09c98;
+  --surface: #ffffff;
+  --surface-raised: #faf9f7;
+  --border: #ece8e3;
+  --border-strong: #d4cfc9;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   min-width: 320px;
-  background: #fff8e8;
-  color: #221b13;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  background: var(--surface-raised);
+  color: var(--ink);
 }
 
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-}
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
 
-.leaflet-popup-content {
-  margin: 10px 12px;
-  font-size: 13px;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
+.leaflet-container { height: 100%; width: 100%; }
+.leaflet-popup-content { margin: 10px 12px; font-size: 13px; }
 
 @layer components {
-  .panel {
-    @apply rounded-lg border border-black/10 bg-white shadow-soft;
-  }
-
-  .eyebrow {
-    @apply text-xs font-black uppercase tracking-[0.12em] text-malt-700;
-  }
-
+  /* Inputs & selects */
   .control {
-    @apply h-11 rounded-md border border-black/10 bg-white px-3 text-sm outline-none ring-hop-500 transition focus:ring-2;
+    @apply h-11 w-full rounded-xl border border-[#ece8e3] bg-white px-3.5 text-sm text-[#1a1714]
+           outline-none transition
+           placeholder:text-[#a09c98]
+           focus:border-[#e8472a] focus:ring-2 focus:ring-[#e8472a]/15;
   }
 
-  .button {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-extrabold transition;
+  /* Primary button — food brand */
+  .btn-primary {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#e8472a] px-5
+           text-sm font-semibold text-white transition
+           hover:bg-[#c73d22] active:scale-[0.98] disabled:opacity-50;
+  }
+
+  /* Secondary / ghost button */
+  .btn-ghost {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#ece8e3]
+           bg-white px-5 text-sm font-semibold text-[#1a1714] transition
+           hover:bg-[#faf9f7] active:scale-[0.98];
+  }
+
+  /* Legacy alias so old components still compile */
+  .button { @apply btn-ghost; }
+
+  /* Card */
+  .card {
+    @apply rounded-2xl border border-[#ece8e3] bg-white shadow-sm;
+  }
+
+  /* Section label */
+  .label {
+    @apply text-xs font-semibold uppercase tracking-widest text-[#a09c98];
   }
 }

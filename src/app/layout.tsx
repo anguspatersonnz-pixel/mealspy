@@ -1,45 +1,46 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "yourbeer | Cheapest alcohol near you",
-  description:
-    "Find nearby alcohol prices, tonight's bar specials, and direct listings from licensed breweries and makers.",
+  title: "mealspy — cheap food near you",
+  description: "Find great value food near you. Restaurants, cafés, and takeaways list their prices and deals directly — no ads, no fluff.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    title: "yourbeer",
-    statusBarStyle: "default",
-  },
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
+  appleWebApp: { capable: true, title: "mealspy", statusBarStyle: "default" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#245c3b",
+  themeColor: "#e8472a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-NZ">
-      <body>
+    <html lang="en-NZ" className={jakarta.variable}>
+      <body style={{ fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif" }}>
         {children}
-        <footer style={{ marginTop: "4rem", borderTop: "1px solid #e5e7eb", background: "#fff", padding: "2.5rem 1rem" }}>
-          <div style={{ maxWidth: "64rem", margin: "0 auto", display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "center", textAlign: "center" }}>
-            <p style={{ fontWeight: 700, color: "#245c3b", fontSize: "1rem" }}>yourbeer</p>
-            <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
-              Find cheap beer near you — prices from bottle shops, bars, and breweries across NZ.
+
+        <footer className="mt-16 border-t border-[#ece8e3] bg-white py-10">
+          <div className="mx-auto max-w-2xl px-4 text-center">
+            <p className="text-sm font-semibold text-[#1a1714]">mealspy</p>
+            <p className="mt-1 text-sm text-[#6b6560]">
+              Real prices from local food places across New Zealand.
             </p>
-            <p style={{ color: "#6b7280", fontSize: "0.875rem", marginTop: "0.5rem" }}>
-              Contact:{" "}
-              <a href="mailto:cheapernz@gmail.com" style={{ color: "#245c3b", textDecoration: "none" }}>
+            <p className="mt-3 text-sm text-[#6b6560]">
+              Contact{" "}
+              <a href="mailto:cheapernz@gmail.com" className="font-semibold text-[#e8472a] hover:underline">
                 cheapernz@gmail.com
               </a>
             </p>
-            <p style={{ color: "#9ca3af", fontSize: "0.75rem", marginTop: "0.5rem" }}>
-              Prices crowd-sourced by the community. Always verify before you go.
+            <p className="mt-2 text-xs text-[#a09c98]">
+              Prices submitted by venues. Always check before you go.
             </p>
           </div>
         </footer>

@@ -6,12 +6,7 @@ import { FormEvent, useRef, useState } from "react";
 import { FOOD_CATEGORIES } from "@/lib/data";
 
 type Step = "form" | "add-items" | "done";
-
-type CreatedVenue = {
-  id: string;
-  slug: string;
-  claim_token: string;
-};
+type CreatedVenue = { id: string; slug: string; claim_token: string };
 
 export default function ListYourPlace() {
   const [step, setStep] = useState<Step>("form");
@@ -19,18 +14,17 @@ export default function ListYourPlace() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Item form state
-  const [items, setItems] = useState<Array<{ name: string; price: string; category: string; isDeal: boolean; dealNote: string }>>([]);
+  // Item form
+  const [items, setItems] = useState<Array<{ name: string; price: string; isDeal: boolean; dealNote: string }>>([]);
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "", isDeal: false, dealNote: "" });
   const [addingItem, setAddingItem] = useState(false);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Resize + compress client-side before storing
     const reader = new FileReader();
     reader.onload = (ev) => {
       const src = ev.target?.result as string;
@@ -42,8 +36,7 @@ export default function ListYourPlace() {
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL("image/jpeg", 0.75);
-        setImagePreview(compressed);
+        setImagePreview(canvas.toDataURL("image/jpeg", 0.75));
       };
       img.src = src;
     };
@@ -98,7 +91,7 @@ export default function ListYourPlace() {
         }),
       });
       if (res.ok) {
-        setItems((prev) => [...prev, { ...newItem }]);
+        setItems((prev) => [...prev, newItem]);
         setNewItem({ name: "", price: "", category: "", isDeal: false, dealNote: "" });
       }
     } finally {
@@ -114,233 +107,243 @@ export default function ListYourPlace() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#f7efe0]">
-      <header className="sticky top-0 z-40 border-b border-[#2f2417]/10 bg-[#ff6b35] px-4 py-3">
-        <div className="mx-auto flex max-w-xl items-center gap-3">
-          <Link href="/" className="grid h-8 w-8 place-items-center rounded-md bg-white/20 text-white">
+    <div className="min-h-dvh bg-[#faf9f7]">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-[#ece8e3] bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3.5">
+          <Link href="/" className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#ece8e3] bg-white text-[#6b6560] hover:text-[#1a1714] transition">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <p className="font-black text-white leading-tight">
-              {step === "form" ? "List your place" : step === "add-items" ? "Add menu items" : "You're live!"}
+            <p className="text-sm font-semibold text-[#1a1714] leading-tight">
+              {step === "form" ? "List your place" : step === "add-items" ? "Add your menu" : "You're live!"}
             </p>
-            <p className="text-xs text-white/70">Free · no account needed</p>
+            <p className="text-xs text-[#a09c98]">Free · no account needed</p>
+          </div>
+          {/* Step indicator */}
+          <div className="ml-auto flex items-center gap-1.5">
+            {(["form", "add-items", "done"] as Step[]).map((s, i) => (
+              <div key={s} className={`h-1.5 w-6 rounded-full transition-colors ${step === s ? "bg-[#e8472a]" : (["form", "add-items", "done"].indexOf(step) > i ? "bg-[#e8472a]/40" : "bg-[#ece8e3]")}`} />
+            ))}
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-xl px-4 py-6">
-        {/* Step 1: venue details */}
+
+        {/* ── Step 1: venue details ── */}
         {step === "form" && (
-          <form onSubmit={submitVenue} className="grid gap-4">
-            <div className="rounded-xl border-2 border-[#2f2417]/10 bg-white p-5 shadow-sm">
-              <h2 className="font-black text-lg mb-4">About your place</h2>
-              <div className="grid gap-3">
+          <form onSubmit={submitVenue} className="space-y-4">
+            <div className="card p-5">
+              <h2 className="mb-0.5 text-base font-semibold text-[#1a1714]">About your place</h2>
+              <p className="mb-4 text-sm text-[#a09c98]">Takes about 2 minutes. You can edit anytime.</p>
+              <div className="space-y-3">
                 <label className="block">
-                  <span className="text-sm font-black text-black/60">Business name *</span>
-                  <input name="name" required placeholder="e.g. Corner Dairy Café" className="control mt-1 w-full" />
+                  <span className="label">Business name *</span>
+                  <input name="name" required placeholder="e.g. Corner Dairy Café" className="control mt-1.5" />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-black text-black/60">Type *</span>
-                  <select name="category" required className="control mt-1 w-full">
+                  <span className="label">Type *</span>
+                  <select name="category" required className="control mt-1.5">
                     {FOOD_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
                     ))}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-sm font-black text-black/60">Short description</span>
-                  <input name="description" placeholder="e.g. Cheap lunch specials daily" className="control mt-1 w-full" />
+                  <span className="label">Short description</span>
+                  <input name="description" placeholder="e.g. Cheap lunch specials daily, best bánh mì in town" className="control mt-1.5" />
                 </label>
 
                 {/* Image upload */}
                 <div>
-                  <span className="text-sm font-black text-black/60">Photo (optional)</span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
+                  <span className="label">Photo</span>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                   {imagePreview ? (
-                    <div className="relative mt-1 w-full overflow-hidden rounded-lg border-2 border-[#2f2417]/10">
+                    <div className="relative mt-1.5 overflow-hidden rounded-xl border border-[#ece8e3]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={imagePreview} alt="Preview" className="h-44 w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => { setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                        className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/50 text-white"
-                        aria-label="Remove image"
+                        className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+                        aria-label="Remove photo"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="mt-1 flex h-28 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#2f2417]/20 bg-[#fffaf0] text-sm font-bold text-black/40 hover:border-[#ff6b35]/50 hover:text-[#ff6b35] transition-colors"
+                      className="mt-1.5 flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#ece8e3] bg-[#faf9f7] text-[#a09c98] transition hover:border-[#e8472a]/50 hover:text-[#e8472a]"
                     >
                       <ImagePlus className="h-5 w-5" />
-                      Tap to add a photo
+                      <span className="text-xs font-medium">Add a photo</span>
                     </button>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border-2 border-[#2f2417]/10 bg-white p-5 shadow-sm">
-              <h2 className="font-black text-lg mb-4">Location</h2>
-              <div className="grid gap-3">
+            <div className="card p-5">
+              <h2 className="mb-4 text-base font-semibold text-[#1a1714]">Location</h2>
+              <div className="space-y-3">
                 <label className="block">
-                  <span className="text-sm font-black text-black/60">Street address</span>
-                  <input name="address" placeholder="123 Main Street" className="control mt-1 w-full" />
+                  <span className="label">Street address</span>
+                  <input name="address" placeholder="123 Main Street" className="control mt-1.5" />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="text-sm font-black text-black/60">Suburb</span>
-                    <input name="suburb" placeholder="Grey Lynn" className="control mt-1 w-full" />
+                    <span className="label">Suburb</span>
+                    <input name="suburb" placeholder="Grey Lynn" className="control mt-1.5" />
                   </label>
                   <label className="block">
-                    <span className="text-sm font-black text-black/60">City *</span>
-                    <input name="city" required placeholder="Auckland" className="control mt-1 w-full" />
+                    <span className="label">City *</span>
+                    <input name="city" required placeholder="Auckland" className="control mt-1.5" />
                   </label>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border-2 border-[#2f2417]/10 bg-white p-5 shadow-sm">
-              <h2 className="font-black text-lg mb-4">Contact (optional)</h2>
-              <div className="grid gap-3">
+            <div className="card p-5">
+              <h2 className="mb-4 text-base font-semibold text-[#1a1714]">Contact <span className="text-[#a09c98] font-normal text-sm">(optional)</span></h2>
+              <div className="space-y-3">
                 <label className="block">
-                  <span className="text-sm font-black text-black/60">Phone</span>
-                  <input name="phone" type="tel" placeholder="09 123 4567" className="control mt-1 w-full" />
+                  <span className="label">Phone</span>
+                  <input name="phone" type="tel" placeholder="09 123 4567" className="control mt-1.5" />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-black text-black/60">Website</span>
-                  <input name="website" type="url" placeholder="https://yourcafe.co.nz" className="control mt-1 w-full" />
+                  <span className="label">Website</span>
+                  <input name="website" type="url" placeholder="https://yourcafe.co.nz" className="control mt-1.5" />
                 </label>
               </div>
             </div>
 
-            {error && <p className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="button w-full justify-center bg-[#ff6b35] text-white shadow-[3px_3px_0_#2f2417] disabled:opacity-60"
-            >
-              {submitting ? "Saving..." : "Continue — add your menu →"}
+            <button type="submit" disabled={submitting} className="btn-primary w-full">
+              {submitting ? "Saving…" : "Continue — add your menu →"}
             </button>
 
-            <p className="text-center text-xs text-black/40">
-              By listing you agree to keep prices accurate. This is free advertising — no fees, ever.
+            <p className="text-center text-xs text-[#a09c98]">
+              Free advertising — your listing appears in near-me search instantly. No fees, ever.
             </p>
           </form>
         )}
 
-        {/* Step 2: add items */}
+        {/* ── Step 2: add items ── */}
         {step === "add-items" && venue && (
-          <div className="grid gap-4">
-            <div className="rounded-xl border-2 border-[#245c3b]/30 bg-[#edf7ef] p-4">
-              <p className="font-black text-[#245c3b]">✓ {venue.slug.split("-").slice(0, -1).join(" ")} is live!</p>
-              <p className="mt-1 text-sm text-[#245c3b]/80">Now add your menu items and deals — people nearby will see them.</p>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-[#c6e8d0] bg-[#f0faf4] px-4 py-3.5">
+              <p className="text-sm font-semibold text-[#1a6b3c]">Your place is live 🎉</p>
+              <p className="mt-0.5 text-sm text-[#1a6b3c]/70">Now add menu items so people know your prices.</p>
             </div>
 
             {/* Claim token */}
-            <div className="rounded-xl border-2 border-[#2f2417]/10 bg-white p-4">
-              <p className="text-sm font-black text-black/60 mb-1">Your edit token — save this somewhere safe</p>
+            <div className="card p-4">
+              <p className="label mb-2">Your edit token — save this</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-black/5 px-3 py-2 text-xs font-mono break-all">{venue.claim_token}</code>
-                <button onClick={copyToken} className="grid h-8 w-8 flex-shrink-0 place-items-center rounded border border-black/10 bg-white text-[#245c3b]">
-                  {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                <code className="flex-1 overflow-hidden rounded-lg bg-[#faf9f7] px-3 py-2.5 text-xs font-mono text-[#6b6560] break-all">{venue.claim_token}</code>
+                <button
+                  onClick={copyToken}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-[#ece8e3] bg-white text-[#6b6560] transition hover:text-[#e8472a]"
+                >
+                  {copied ? <CheckCircle className="h-4 w-4 text-[#1a6b3c]" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-black/40">You&apos;ll need this to add or remove items later.</p>
+              <p className="mt-2 text-xs text-[#a09c98]">You need this to add or remove items later.</p>
             </div>
 
-            {/* Added items so far */}
+            {/* Items added so far */}
             {items.length > 0 && (
-              <div className="rounded-xl border-2 border-[#2f2417]/10 bg-white p-4">
-                <p className="text-sm font-black mb-2">Added ({items.length})</p>
-                {items.map((item, i) => (
-                  <div key={i} className="flex justify-between py-1.5 border-b border-black/5 last:border-0 text-sm">
-                    <span className="font-bold">{item.name} {item.isDeal && <span className="text-[#ff6b35]">🔥</span>}</span>
-                    <span className="font-black text-[#245c3b]">${Number(item.price).toFixed(2)}</span>
-                  </div>
-                ))}
+              <div className="card p-4">
+                <p className="label mb-3">Added so far</p>
+                <div className="divide-y divide-[#ece8e3]">
+                  {items.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+                      <span className="text-sm font-medium text-[#1a1714]">
+                        {item.name}{item.isDeal && <span className="ml-1.5 text-[#e8472a]">🔥</span>}
+                      </span>
+                      <span className="text-sm font-semibold text-[#1a6b3c]">${Number(item.price).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* New item form */}
-            <div className="rounded-xl border-2 border-[#2f2417]/10 bg-white p-4">
-              <p className="font-black mb-3">Add an item</p>
-              <div className="grid gap-2">
+            <div className="card p-4">
+              <h3 className="mb-3 text-sm font-semibold text-[#1a1714]">Add an item</h3>
+              <div className="space-y-2.5">
                 <input
                   value={newItem.name}
                   onChange={(e) => setNewItem((v) => ({ ...v, name: e.target.value }))}
-                  placeholder="Item name (e.g. Butter chicken)"
-                  className="control w-full"
+                  placeholder="Item name (e.g. Butter chicken, Flat white)"
+                  className="control"
                 />
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <input
                     value={newItem.price}
                     onChange={(e) => setNewItem((v) => ({ ...v, price: e.target.value }))}
                     type="number" min="0" step="0.5" placeholder="Price $"
-                    className="control w-full"
+                    className="control"
                   />
                   <input
                     value={newItem.category}
                     onChange={(e) => setNewItem((v) => ({ ...v, category: e.target.value }))}
                     placeholder="Category (optional)"
-                    className="control w-full"
+                    className="control"
                   />
                 </div>
-                <label className="flex items-center gap-2 text-sm font-bold">
+                <label className="flex items-center gap-2.5 text-sm font-medium text-[#1a1714]">
                   <input
                     type="checkbox"
                     checked={newItem.isDeal}
                     onChange={(e) => setNewItem((v) => ({ ...v, isDeal: e.target.checked }))}
-                    className="accent-[#ff6b35]"
+                    className="h-4 w-4 rounded accent-[#e8472a]"
                   />
-                  This is a deal / special
+                  This is a deal or special
                 </label>
                 {newItem.isDeal && (
                   <input
                     value={newItem.dealNote}
                     onChange={(e) => setNewItem((v) => ({ ...v, dealNote: e.target.value }))}
                     placeholder="Deal note (e.g. Lunch special 11am–2pm)"
-                    className="control w-full"
+                    className="control"
                   />
                 )}
                 <button
                   onClick={addItem}
                   disabled={addingItem || !newItem.name.trim() || !newItem.price}
-                  className="button bg-[#245c3b] text-white disabled:opacity-50"
+                  className="btn-primary w-full disabled:opacity-50"
                 >
-                  {addingItem ? "Saving..." : "+ Add item"}
+                  {addingItem ? "Saving…" : "+ Add item"}
                 </button>
               </div>
             </div>
 
             <button
               onClick={() => setStep("done")}
-              className="button w-full justify-center bg-[#ff6b35] text-white shadow-[3px_3px_0_#2f2417]"
+              className="btn-ghost w-full"
             >
-              {items.length === 0 ? "Skip for now — I'll add items later" : "Done — view my listing →"}
+              {items.length === 0 ? "Skip — I'll add items later" : "Done →"}
             </button>
           </div>
         )}
 
-        {/* Step 3: done */}
+        {/* ── Step 3: done ── */}
         {step === "done" && (
-          <div className="grid gap-4 text-center">
-            <p className="text-6xl">🎉</p>
-            <h2 className="text-2xl font-black">You&apos;re on the map!</h2>
-            <p className="text-black/60">People near you can now find your place and see your menu.</p>
-            <Link href="/" className="button justify-center bg-[#ff6b35] text-white shadow-[3px_3px_0_#2f2417]">
-              Browse mealspy →
+          <div className="py-12 text-center">
+            <p className="text-5xl mb-5">🎉</p>
+            <h2 className="text-2xl font-bold text-[#1a1714]">You&apos;re on the map!</h2>
+            <p className="mt-2 text-sm text-[#6b6560] max-w-xs mx-auto">
+              People nearby can now find your place and see your menu. Thanks for being part of mealspy.
+            </p>
+            <Link href="/" className="btn-primary mt-7 mx-auto">
+              Browse mealspy
             </Link>
           </div>
         )}
