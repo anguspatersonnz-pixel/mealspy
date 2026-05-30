@@ -25,6 +25,7 @@ export type FoodVenue = {
   phone: string | null;
   website: string | null;
   description: string | null;
+  imageUrl: string | null;
   claimToken: string;
   createdAt: string;
   distanceKm?: number;

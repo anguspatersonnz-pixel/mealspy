@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeft, CheckCircle, Copy } from "lucide-react";
+import { ArrowLeft, CheckCircle, Copy, ImagePlus, X } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { FOOD_CATEGORIES } from "@/lib/data";
 
 type Step = "form" | "add-items" | "done";
@@ -18,12 +18,37 @@ export default function ListYourPlace() {
   const [venue, setVenue] = useState<CreatedVenue | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
 
   // Item form state
   const [items, setItems] = useState<Array<{ name: string; price: string; category: string; isDeal: boolean; dealNote: string }>>([]);
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "", isDeal: false, dealNote: "" });
   const [addingItem, setAddingItem] = useState(false);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Resize + compress client-side before storing
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX = 800;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressed = canvas.toDataURL("image/jpeg", 0.75);
+        setImagePreview(compressed);
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function submitVenue(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +68,7 @@ export default function ListYourPlace() {
           phone: form.get("phone"),
           website: form.get("website"),
           description: form.get("description"),
+          imageUrl: imagePreview ?? null,
         }),
       });
       const data = await res.json();
@@ -126,6 +152,41 @@ export default function ListYourPlace() {
                   <span className="text-sm font-black text-black/60">Short description</span>
                   <input name="description" placeholder="e.g. Cheap lunch specials daily" className="control mt-1 w-full" />
                 </label>
+
+                {/* Image upload */}
+                <div>
+                  <span className="text-sm font-black text-black/60">Photo (optional)</span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                  {imagePreview ? (
+                    <div className="relative mt-1 w-full overflow-hidden rounded-lg border-2 border-[#2f2417]/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imagePreview} alt="Preview" className="h-44 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                        className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/50 text-white"
+                        aria-label="Remove image"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-1 flex h-28 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#2f2417]/20 bg-[#fffaf0] text-sm font-bold text-black/40 hover:border-[#ff6b35]/50 hover:text-[#ff6b35] transition-colors"
+                    >
+                      <ImagePlus className="h-5 w-5" />
+                      Tap to add a photo
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

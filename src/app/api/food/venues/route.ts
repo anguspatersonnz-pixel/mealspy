@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
-  const { name, category, address, suburb, city, lat, lng, phone, website, description } = body;
+  const { name, category, address, suburb, city, lat, lng, phone, website, description, imageUrl } = body;
   if (!name?.trim() || !city?.trim()) {
     return NextResponse.json({ error: "name and city are required" }, { status: 400 });
   }
@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
     phone: phone?.trim() ?? null,
     website: website?.trim() ?? null,
     description: description?.trim() ?? null,
+    imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
     claimToken: nanoid(32),
     createdAt: new Date().toISOString(),
   };

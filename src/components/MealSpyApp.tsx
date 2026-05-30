@@ -224,6 +224,15 @@ export default function MealSpyApp() {
                 key={venue.id}
                 className="rounded-xl border-2 border-[#2f2417]/10 bg-white shadow-sm overflow-hidden"
               >
+                {venue.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={venue.imageUrl}
+                    alt={venue.name}
+                    className="h-36 w-full object-cover cursor-pointer"
+                    onClick={() => expandVenue(venue)}
+                  />
+                )}
                 <button
                   className="w-full p-4 text-left"
                   onClick={() => expandVenue(venue)}
