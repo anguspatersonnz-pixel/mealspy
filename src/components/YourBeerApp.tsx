@@ -10,6 +10,7 @@ import {
   Search,
   SlidersHorizontal,
   Store,
+  UtensilsCrossed,
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -610,6 +611,13 @@ function DirectoryMenu({
         <MapPinned className="h-4 w-4" />
         Map
       </button>
+      <a
+        href="/food"
+        className="flex h-12 items-center gap-3 rounded-md border border-black/10 bg-[#fff3ee] px-3 text-left text-sm font-black text-[#ff6b35]"
+      >
+        <UtensilsCrossed className="h-4 w-4" />
+        mealspy — cheap food
+      </a>
       <button
         type="button"
         onClick={() => chooseMenuAction("post")}

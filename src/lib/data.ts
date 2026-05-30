@@ -1,6 +1,49 @@
 export type ListingType = "store" | "bar" | "maker";
 export type VenueType = ListingType;
 
+export type FoodCategory = "restaurant" | "cafe" | "bakery" | "food-truck" | "takeaway" | "dairy";
+
+export const FOOD_CATEGORIES: Array<{ value: FoodCategory; label: string; emoji: string }> = [
+  { value: "restaurant", label: "Restaurant", emoji: "🍽️" },
+  { value: "cafe", label: "Café", emoji: "☕" },
+  { value: "bakery", label: "Bakery", emoji: "🥐" },
+  { value: "food-truck", label: "Food truck", emoji: "🚚" },
+  { value: "takeaway", label: "Takeaway", emoji: "🥡" },
+  { value: "dairy", label: "Dairy / dairy bar", emoji: "🍦" },
+];
+
+export type FoodVenue = {
+  id: string;
+  name: string;
+  slug: string;
+  category: FoodCategory;
+  address: string;
+  suburb: string;
+  city: string;
+  lat: number;
+  lng: number;
+  phone: string | null;
+  website: string | null;
+  description: string | null;
+  claimToken: string;
+  createdAt: string;
+  distanceKm?: number;
+};
+
+export type FoodItem = {
+  id: string;
+  venueId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: string | null;
+  isDeal: boolean;
+  dealNote: string | null;
+  dealExpires: string | null;
+  isAvailable: boolean;
+  createdAt: string;
+};
+
 export type AlcoholStyle =
   | "lager"
   | "ipa"

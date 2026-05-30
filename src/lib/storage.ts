@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Listing } from "./data";
-import { distanceKm, starterVenues, type Venue, type VenueType } from "./data";
+import { distanceKm, starterVenues, type FoodItem, type FoodVenue, type Venue, type VenueType } from "./data";
 import {
   applicationToRow,
   hasSupabase,
@@ -187,4 +187,76 @@ export async function addVenue(venue: Venue) {
   const next = [venue, ...venues.filter((item) => item.id !== venue.id)];
   await writeJson(venuesFile, next);
   return venue;
+}
+
+// ── Food venues ────────────────────────────────────────────────────────────────
+
+const foodVenuesFile = path.join(dataDir, "food-venues.json");
+const foodItemsFile = path.join(dataDir, "food-items.json");
+
+export async function getFoodVenues(): Promise<FoodVenue[]> {
+  return readJson<FoodVenue[]>(foodVenuesFile, []);
+}
+
+export async function getFoodVenuesNear(params: {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  category?: string;
+}): Promise<(FoodVenue & { cheapestPrice: number | null; dealCount: number })[]> {
+  const venues = await getFoodVenues();
+  const items = await getFoodItems();
+  const now = new Date();
+
+  return venues
+    .filter((v) => !params.category || params.category === "all" || v.category === params.category)
+    .map((v) => {
+      const venueItems = items.filter((i) => i.venueId === v.id && i.isAvailable);
+      const cheapestPrice = venueItems.length > 0 ? Math.min(...venueItems.map((i) => i.price)) : null;
+      const dealCount = venueItems.filter(
+        (i) => i.isDeal && (!i.dealExpires || new Date(i.dealExpires) > now)
+      ).length;
+      return {
+        ...v,
+        distanceKm: Number(distanceKm(params, v).toFixed(1)),
+        cheapestPrice,
+        dealCount,
+      };
+    })
+    .filter((v) => v.distanceKm <= params.radiusKm)
+    .sort((a, b) => {
+      if (b.dealCount !== a.dealCount) return b.dealCount - a.dealCount;
+      return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
+    });
+}
+
+export async function getFoodVenueBySlug(slug: string): Promise<FoodVenue | null> {
+  const venues = await getFoodVenues();
+  return venues.find((v) => v.slug === slug) ?? null;
+}
+
+export async function addFoodVenue(venue: FoodVenue): Promise<FoodVenue> {
+  const venues = await getFoodVenues();
+  const next = [venue, ...venues.filter((v) => v.id !== venue.id)];
+  await writeJson(foodVenuesFile, next);
+  return venue;
+}
+
+export async function getFoodItems(venueId?: string): Promise<FoodItem[]> {
+  const all = await readJson<FoodItem[]>(foodItemsFile, []);
+  return venueId ? all.filter((i) => i.venueId === venueId) : all;
+}
+
+export async function addFoodItem(item: FoodItem): Promise<FoodItem> {
+  const items = await getFoodItems();
+  await writeJson(foodItemsFile, [item, ...items]);
+  return item;
+}
+
+export async function deleteFoodItem(id: string, venueId: string): Promise<boolean> {
+  const items = await getFoodItems();
+  const filtered = items.filter((i) => !(i.id === id && i.venueId === venueId));
+  if (filtered.length === items.length) return false;
+  await writeJson(foodItemsFile, filtered);
+  return true;
 }
