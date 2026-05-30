@@ -1,5 +1,5 @@
-import YourBeerApp from "@/components/YourBeerApp";
+import MealSpyApp from "@/components/MealSpyApp";
 
 export default function Home() {
-  return <YourBeerApp />;
+  return <MealSpyApp />;
 }

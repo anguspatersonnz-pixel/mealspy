@@ -10,7 +10,6 @@ import {
   Search,
   SlidersHorizontal,
   Store,
-  UtensilsCrossed,
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -242,14 +241,19 @@ export default function YourBeerApp() {
     <div className="grid h-dvh grid-rows-[auto_1fr] overflow-hidden bg-[#f7efe0] text-[#1f1b16]">
       <div className="border-b border-[#2f2417]/10 bg-[#f2c35d] shadow-sm">
         <header className="hidden min-h-[86px] items-center justify-between px-5 md:flex">
-        <a href="#top" className="flex min-w-0 items-center gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-3xl shadow-[4px_4px_0_#2f2417]">
-            🍺
-          </span>
-          <span className="min-w-0">
-            <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer</span>
-          </span>
-        </a>
+        <div className="flex items-center gap-3 min-w-0">
+          <a href="/" className="grid h-9 w-9 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-sm font-black shadow-[3px_3px_0_#2f2417] text-[#245c3b]" title="Back to MealSpy">
+            🍜
+          </a>
+          <a href="#top" className="flex min-w-0 items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-3xl shadow-[4px_4px_0_#2f2417]">
+              🍺
+            </span>
+            <span className="min-w-0">
+              <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer</span>
+            </span>
+          </a>
+        </div>
         <button
           type="button"
           onClick={() => setPanel("menu")}
@@ -611,14 +615,7 @@ function DirectoryMenu({
         <MapPinned className="h-4 w-4" />
         Map
       </button>
-      <a
-        href="/food"
-        className="flex h-12 items-center gap-3 rounded-md border border-black/10 bg-[#fff3ee] px-3 text-left text-sm font-black text-[#ff6b35]"
-      >
-        <UtensilsCrossed className="h-4 w-4" />
-        mealspy — cheap food
-      </a>
-      <button
+<button
         type="button"
         onClick={() => chooseMenuAction("post")}
         className="mt-2 flex h-12 items-center justify-center rounded-md bg-[#245c3b] px-3 text-sm font-black text-white"
