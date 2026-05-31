@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { Listing } from "./data";
 import { distanceKm, starterVenues, type FoodItem, type FoodVenue, type Venue, type VenueType } from "./data";
@@ -25,7 +26,9 @@ export type SellerApplication = {
   status: "received";
 };
 
-const dataDir = path.join(process.cwd(), ".data");
+const dataDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "mealspy-data")
+  : path.join(process.cwd(), ".data");
 const listingsFile = path.join(dataDir, "listings.json");
 const applicationsFile = path.join(dataDir, "applications.json");
 const venuesFile = path.join(dataDir, "venues.json");
