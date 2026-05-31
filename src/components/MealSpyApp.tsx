@@ -275,12 +275,10 @@ export default function MealSpyApp() {
                   <Menu className="h-4 w-4" />
                 </button>
                 {showAbout && (
-                  <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-[#ece8e3] bg-white shadow-lg z-50 p-4">
-                    <p className="text-sm font-bold text-[#1a1714] mb-2">About mealspy 🍜</p>
-                    <p className="text-xs leading-relaxed text-[#6b6560]">
-                      Ever rocked up somewhere new and had no idea what was around you — let alone what was cheap? That&apos;s exactly why we built mealspy. Whether you&apos;re on lunch, exploring a new suburb, or just broke, we surface the best value food and deals near you in seconds. No ads, no fluff — just what&apos;s nearby and how much it costs.
-                    </p>
-                    <p className="mt-3 text-[11px] text-[#a09c98]">Two mates working hard to save your credit card. 💳</p>
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-[#ece8e3] bg-white shadow-lg z-50 overflow-hidden">
+                    <Link href="/about" onClick={() => setShowAbout(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#1a1714] hover:bg-[#f5f5f5] transition">
+                      About
+                    </Link>
                   </div>
                 )}
               </div>
