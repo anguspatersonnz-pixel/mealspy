@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bell, CheckCircle2, Heart, LogOut, Save, User, Utensils } from "lucide-react";
+import { ArrowLeft, Bell, CheckCircle2, Heart, ListPlus, LogOut, Map, Save, Search, User, Utensils } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { FOOD_CATEGORIES } from "@/lib/data";
@@ -26,14 +26,27 @@ const emptyProfile: AccountProfile = {
 };
 
 const storageKey = "mealspy.accountProfile";
+const savedVenuesKey = "mealspy.savedVenues";
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<AccountProfile>(emptyProfile);
   const [savedProfile, setSavedProfile] = useState<AccountProfile | null>(null);
+  const [savedVenueCount, setSavedVenueCount] = useState(0);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
+    const storedSavedVenues = window.localStorage.getItem(savedVenuesKey);
+
+    if (storedSavedVenues) {
+      try {
+        const parsedSavedVenues = JSON.parse(storedSavedVenues);
+        setSavedVenueCount(Array.isArray(parsedSavedVenues) ? parsedSavedVenues.length : 0);
+      } catch {
+        window.localStorage.removeItem(savedVenuesKey);
+      }
+    }
+
     if (!stored) return;
 
     try {
@@ -109,6 +122,39 @@ export default function AccountPage() {
               <p className="mt-1 text-sm leading-6 text-[#6b6560]">{personalisedIntro}</p>
             </div>
           </div>
+        </section>
+
+        <section className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
+            <Heart className="mb-1 h-4 w-4 text-[#b83280]" />
+            <p className="text-lg font-bold leading-none text-[#1a1714]">{savedVenueCount}</p>
+            <p className="mt-1 text-[11px] font-medium text-[#a09c98]">saved places</p>
+          </div>
+          <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
+            <Bell className="mb-1 h-4 w-4 text-[#e8472a]" />
+            <p className="text-lg font-bold leading-none text-[#1a1714]">{profile.dealAlerts ? "On" : "Off"}</p>
+            <p className="mt-1 text-[11px] font-medium text-[#a09c98]">alerts</p>
+          </div>
+          <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
+            <Utensils className="mb-1 h-4 w-4 text-[#1a6b3c]" />
+            <p className="truncate text-lg font-bold leading-none text-[#1a1714]">${profile.maxLunchPrice}</p>
+            <p className="mt-1 text-[11px] font-medium text-[#a09c98]">budget</p>
+          </div>
+        </section>
+
+        <section className="grid gap-2 sm:grid-cols-3">
+          <Link href="/" className="btn-ghost justify-start">
+            <Search className="h-4 w-4 text-[#e8472a]" />
+            Find food
+          </Link>
+          <Link href="/map" className="btn-ghost justify-start">
+            <Map className="h-4 w-4 text-[#1a6b3c]" />
+            Open map
+          </Link>
+          <Link href="/list" className="btn-ghost justify-start">
+            <ListPlus className="h-4 w-4 text-[#e8472a]" />
+            List place
+          </Link>
         </section>
 
         <form onSubmit={saveProfile} className="grid gap-4">
