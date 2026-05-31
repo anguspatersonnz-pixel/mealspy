@@ -16,33 +16,130 @@ Rules:
 - Skip items with no price
 - Return [] if nothing can be parsed`;
 
-function parseWithRegex(text: string) {
-  const items: Array<{ name: string; price: number; category: string | null; description: string | null; isDeal: boolean; dealNote: string | null }> = [];
-  let currentCategory: string | null = null;
+type MenuItem = { name: string; price: number; category: string | null; description: string | null; isDeal: boolean; dealNote: string | null };
 
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
+// Matches price in many formats: $14, $14.50, 14.50, 14, $14.5, from $14
+const PRICE_RE = /(?:from\s+)?\$?\s*(\d{1,3}(?:\.\d{1,2})?)\s*$/i;
+// Price at start of line: $14 Burger
+const PRICE_START_RE = /^\$?\s*(\d{1,3}(?:\.\d{1,2})?)\s+(.+)/;
+// Dot/dash leaders: "Burger ......... $14" or "Burger - - - $14" or "Burger\t$14"
+const LEADER_RE = /^(.+?)[\s.·\-–—]{3,}\$?\s*(\d{1,3}(?:\.\d{1,2})?)[\s]*$/;
+// Tab separated: "Burger\t14.50"
+const TAB_RE = /^(.+?)\t\$?\s*(\d{1,3}(?:\.\d{1,2})?)[\s]*$/;
+// Deal/special keywords
+const DEAL_WORDS = /\b(special|deal|offer|happy hour|lunch deal|early bird|promo|discount|today only|limited|value)\b/i;
+// Heading: short line, no price, title-case or all-caps or ends with colon, not a description
+const HEADING_RE = /^([A-Z][A-Za-z &'/()-]{1,40}|[A-Z\s&]{3,40}):?$/;
+// Dietary tags to strip from name but keep for description
+const DIETARY_RE = /\s*[\[(]?(v|vg|vegan|vegetarian|gf|gluten.?free|df|dairy.?free|nf|nut.?free|spicy|hot)[)\]]?/gi;
+
+function extractPrice(str: string): number | null {
+  const m = str.match(PRICE_RE);
+  if (!m) return null;
+  const v = parseFloat(m[1]);
+  return v > 0 && v <= 500 ? v : null;
+}
+
+function cleanName(raw: string): string {
+  return raw
+    .replace(DIETARY_RE, "")        // remove dietary tags
+    .replace(/[.…\-–—]+$/, "")      // trailing dots/dashes
+    .replace(/\s{2,}/g, " ")        // collapse spaces
+    .trim();
+}
+
+function isHeading(line: string, hasPrice: boolean): boolean {
+  if (hasPrice) return false;
+  if (line.length > 50) return false;
+  // All caps (with spaces/& allowed)
+  if (line === line.toUpperCase() && line.length >= 3) return true;
+  // Ends with colon
+  if (line.endsWith(":")) return true;
+  // Title-case short line with no lowercase-start words (e.g. "Burgers & Wraps")
+  if (HEADING_RE.test(line.replace(/:$/, "").trim())) return true;
+  return false;
+}
+
+function parseWithRegex(text: string) {
+  const items: MenuItem[] = [];
+  let currentCategory: string | null = null;
+  const lines = text.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
     if (!trimmed) continue;
 
-    // Detect category heading — line with no price, all caps or ends with colon
-    const priceMatch = trimmed.match(/\$?([\d]+\.?\d{0,2})\s*$/);
-    if (!priceMatch) {
-      if (trimmed.length < 40 && (trimmed === trimmed.toUpperCase() || trimmed.endsWith(":"))) {
-        currentCategory = trimmed.replace(/:$/, "").trim();
+    // ── Try tab-separated ──────────────────────────────────────────────────
+    const tabMatch = trimmed.match(TAB_RE);
+    if (tabMatch) {
+      const price = parseFloat(tabMatch[2]);
+      const name = cleanName(tabMatch[1]);
+      if (name && price > 0 && price <= 500) {
+        const isDeal = DEAL_WORDS.test(name);
+        items.push({ name, price, category: currentCategory, description: null, isDeal, dealNote: isDeal ? name : null });
+        continue;
       }
-      continue;
     }
 
-    const price = parseFloat(priceMatch[1]);
-    if (isNaN(price) || price <= 0 || price > 500) continue;
+    // ── Try dot/dash leader ────────────────────────────────────────────────
+    const leaderMatch = trimmed.match(LEADER_RE);
+    if (leaderMatch) {
+      const price = parseFloat(leaderMatch[2]);
+      const name = cleanName(leaderMatch[1]);
+      if (name && price > 0 && price <= 500) {
+        const isDeal = DEAL_WORDS.test(name);
+        // Peek at next line — might be a description
+        const nextLine = lines[i + 1]?.trim();
+        const desc = nextLine && !extractPrice(nextLine) && nextLine.length > 3 && nextLine.length < 120 && !isHeading(nextLine, false) ? nextLine : null;
+        if (desc) i++; // consume description line
+        items.push({ name, price, category: currentCategory, description: desc, isDeal, dealNote: isDeal ? name : null });
+        continue;
+      }
+    }
 
-    const name = trimmed.slice(0, trimmed.lastIndexOf(priceMatch[0])).replace(/[.\-–]+$/, "").trim();
-    if (!name) continue;
+    // ── Try price at start of line ─────────────────────────────────────────
+    const startMatch = trimmed.match(PRICE_START_RE);
+    if (startMatch) {
+      const price = parseFloat(startMatch[1]);
+      const name = cleanName(startMatch[2]);
+      if (name && price > 0 && price <= 500) {
+        const isDeal = DEAL_WORDS.test(name);
+        items.push({ name, price, category: currentCategory, description: null, isDeal, dealNote: isDeal ? name : null });
+        continue;
+      }
+    }
 
-    items.push({ name, price, category: currentCategory, description: null, isDeal: false, dealNote: null });
+    // ── Try price at end of line ───────────────────────────────────────────
+    const endPrice = extractPrice(trimmed);
+    if (endPrice !== null) {
+      const nameRaw = trimmed.slice(0, trimmed.lastIndexOf(endPrice.toString())).replace(/\$\s*$/, "").trim();
+      const name = cleanName(nameRaw);
+      if (name.length >= 2) {
+        const isDeal = DEAL_WORDS.test(name);
+        const nextLine = lines[i + 1]?.trim();
+        const desc = nextLine && !extractPrice(nextLine) && nextLine.length > 3 && nextLine.length < 120 && !isHeading(nextLine, false) ? nextLine : null;
+        if (desc) i++;
+        items.push({ name, price: endPrice, category: currentCategory, description: desc, isDeal, dealNote: isDeal ? name : null });
+        continue;
+      }
+    }
+
+    // ── No price — check for heading ───────────────────────────────────────
+    if (isHeading(trimmed, false)) {
+      currentCategory = trimmed.replace(/:$/, "").trim();
+    }
+    // else: likely a standalone description line, skip
   }
 
-  return items;
+  // Deduplicate by name (keep first occurrence)
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
