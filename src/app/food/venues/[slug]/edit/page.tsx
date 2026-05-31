@@ -344,29 +344,71 @@ function PreviewList({ preview, setPreview, onSave, saving, done }: {
   done: boolean;
 }) {
   const selectedCount = preview.filter((i) => i.selected).length;
+
+  function update(i: number, patch: Partial<PreviewItem>) {
+    setPreview((p) => p.map((x, j) => j === i ? { ...x, ...patch } : x));
+  }
+
   return (
     <div className="rounded-2xl border border-[#ece8e3] bg-white overflow-hidden">
       <div className="px-4 py-3 border-b border-[#ece8e3] flex items-center justify-between">
-        <p className="text-sm font-semibold text-[#1a1714]">Found {preview.length} items</p>
+        <p className="text-sm font-semibold text-[#1a1714]">Found {preview.length} items — edit before saving</p>
         <p className="text-xs text-[#a09c98]">{selectedCount} selected</p>
       </div>
       <div className="divide-y divide-[#ece8e3]">
         {preview.map((item, i) => (
-          <label key={i} className="flex items-start gap-3 px-4 py-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={item.selected}
-              onChange={(e) => setPreview((p) => p.map((x, j) => j === i ? { ...x, selected: e.target.checked } : x))}
-              className="mt-0.5 h-4 w-4 rounded accent-[#e8472a]"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1a1714]">{item.name}</p>
-              {item.category && <p className="text-xs text-[#a09c98]">{item.category}</p>}
-              {item.description && <p className="text-xs text-[#6b6560]">{item.description}</p>}
-              {item.isDeal && item.dealNote && <p className="text-xs font-medium text-[#e8472a]">{item.dealNote}</p>}
+          <div key={i} className={`px-4 py-3 space-y-2 ${!item.selected ? "opacity-40" : ""}`}>
+            {/* Select + name row */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={item.selected}
+                onChange={(e) => update(i, { selected: e.target.checked })}
+                className="h-4 w-4 rounded accent-[#e8472a] flex-shrink-0"
+              />
+              <input
+                value={item.name}
+                onChange={(e) => update(i, { name: e.target.value })}
+                disabled={!item.selected}
+                className="flex-1 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1.5 text-sm font-medium text-[#1a1714] outline-none focus:border-[#e8472a] focus:bg-white disabled:cursor-default"
+              />
+              <input
+                value={item.price}
+                type="number"
+                min="0"
+                step="0.5"
+                onChange={(e) => update(i, { price: Number(e.target.value) })}
+                disabled={!item.selected}
+                className="w-20 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1.5 text-sm font-semibold text-[#1a6b3c] outline-none focus:border-[#e8472a] focus:bg-white disabled:cursor-default"
+              />
             </div>
-            <p className="flex-shrink-0 text-sm font-semibold text-[#1a6b3c]">{money(item.price)}</p>
-          </label>
+            {/* Category + description */}
+            {item.selected && (
+              <div className="flex gap-2 pl-6">
+                <input
+                  value={item.category ?? ""}
+                  onChange={(e) => update(i, { category: e.target.value || null })}
+                  placeholder="Category"
+                  className="w-28 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1 text-xs text-[#6b6560] outline-none focus:border-[#e8472a] focus:bg-white"
+                />
+                <input
+                  value={item.description ?? ""}
+                  onChange={(e) => update(i, { description: e.target.value || null })}
+                  placeholder="Description (optional)"
+                  className="flex-1 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1 text-xs text-[#6b6560] outline-none focus:border-[#e8472a] focus:bg-white"
+                />
+                <label className="flex items-center gap-1 text-xs text-[#a09c98] whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={item.isDeal}
+                    onChange={(e) => update(i, { isDeal: e.target.checked })}
+                    className="accent-[#e8472a]"
+                  />
+                  Deal
+                </label>
+              </div>
+            )}
+          </div>
         ))}
       </div>
       <div className="px-4 py-3 border-t border-[#ece8e3]">

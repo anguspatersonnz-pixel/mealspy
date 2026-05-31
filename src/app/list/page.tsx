@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckCircle, Copy, ImagePlus, Upload, X } from "lucide-react";
+import { ArrowLeft, CheckCircle, Copy, ImagePlus, X } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
 import { FOOD_CATEGORIES } from "@/lib/data";
@@ -42,12 +42,7 @@ export default function ListYourPlace() {
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Menu upload
-  const [menuFile, setMenuFile] = useState<File | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
-  const menuInputRef = useRef<HTMLInputElement>(null);
-
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -101,21 +96,7 @@ export default function ListYourPlace() {
     }
   }
 
-  async function uploadMenu() {
-    if (!venue || !menuFile) return;
-    setUploadStatus("uploading");
-    try {
-      const fd = new FormData();
-      fd.append("token", venue.claim_token);
-      fd.append("menu", menuFile);
-      const res = await fetch(`/api/food/venues/${venue.id}/menu-upload`, { method: "POST", body: fd });
-      setUploadStatus(res.ok ? "done" : "error");
-    } catch {
-      setUploadStatus("error");
-    }
-  }
-
-  function copyToken() {
+function copyToken() {
     if (!venue) return;
     navigator.clipboard.writeText(`${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}`);
     setCopied(true);
@@ -280,15 +261,14 @@ export default function ListYourPlace() {
           </form>
         )}
 
-        {/* ── Step 2: menu upload ── */}
+        {/* ── Step 2: save link ── */}
         {step === "add-items" && venue && (
           <div className="space-y-4">
             <div className="rounded-xl border border-[#c6e8d0] bg-[#f0faf4] px-4 py-3.5">
               <p className="text-sm font-semibold text-[#1a6b3c]">Your place is live 🎉</p>
-              <p className="mt-0.5 text-sm text-[#1a6b3c]/70">Upload your menu and we&apos;ll add it for you.</p>
+              <p className="mt-0.5 text-sm text-[#1a6b3c]/70">Save your link below then add your menu items.</p>
             </div>
 
-            {/* Management link */}
             <div className="card p-4 border-[#fad5ce] bg-[#fff8f6]">
               <p className="text-sm font-semibold text-[#c73d22] mb-1">⚠️ Save your management link</p>
               <p className="text-xs text-[#6b6560] mb-3">This is the only way to edit your menu and prices. Bookmark it or copy it somewhere safe.</p>
@@ -296,70 +276,14 @@ export default function ListYourPlace() {
                 <code className="flex-1 overflow-hidden rounded-lg bg-white border border-[#fad5ce] px-3 py-2 text-[11px] font-mono text-[#6b6560] break-all">
                   {typeof window !== "undefined" ? `${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}` : `/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
                 </code>
-                <button
-                  onClick={copyToken}
-                  className="flex-shrink-0 rounded-lg border border-[#fad5ce] bg-white px-3 py-2 text-xs font-semibold text-[#e8472a]"
-                >
+                <button onClick={copyToken} className="flex-shrink-0 rounded-lg border border-[#fad5ce] bg-white px-3 py-2 text-xs font-semibold text-[#e8472a]">
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
             </div>
 
-            {/* Menu upload */}
-            <div className="card p-4">
-              <h3 className="mb-1 text-sm font-semibold text-[#1a1714]">Upload your menu</h3>
-              <p className="mb-3 text-xs text-[#a09c98]">PDF, photo, or screenshot — we&apos;ll handle the rest. Max 20 MB.</p>
-              <input
-                ref={menuInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={(e) => { setMenuFile(e.target.files?.[0] ?? null); setUploadStatus("idle"); }}
-              />
-              {menuFile ? (
-                <div className="flex items-center gap-3 rounded-xl border border-[#ece8e3] bg-[#faf9f7] px-3.5 py-3">
-                  <span className="text-lg">{menuFile.type.startsWith("image/") ? "🖼️" : "📄"}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1a1714] truncate">{menuFile.name}</p>
-                    <p className="text-xs text-[#a09c98]">{(menuFile.size / 1024).toFixed(0)} KB</p>
-                  </div>
-                  <button onClick={() => { setMenuFile(null); setUploadStatus("idle"); if (menuInputRef.current) menuInputRef.current.value = ""; }} className="text-[#a09c98] hover:text-[#e8472a] transition">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => menuInputRef.current?.click()}
-                  className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#ece8e3] bg-[#faf9f7] text-[#a09c98] transition hover:border-[#e8472a]/50 hover:text-[#e8472a]"
-                >
-                  <Upload className="h-5 w-5" />
-                  <span className="text-xs font-medium">Choose file</span>
-                </button>
-              )}
-
-              {menuFile && uploadStatus !== "done" && (
-                <button
-                  onClick={uploadMenu}
-                  disabled={uploadStatus === "uploading"}
-                  className="btn-primary w-full mt-3 disabled:opacity-50"
-                >
-                  {uploadStatus === "uploading" ? "Uploading…" : "Send menu"}
-                </button>
-              )}
-              {uploadStatus === "done" && (
-                <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f0faf4] border border-[#c6e8d0] px-4 py-2.5">
-                  <CheckCircle className="h-4 w-4 text-[#1a6b3c]" />
-                  <p className="text-sm font-semibold text-[#1a6b3c]">Menu received — we&apos;ll add it shortly.</p>
-                </div>
-              )}
-              {uploadStatus === "error" && (
-                <p className="mt-2 text-xs text-red-600">Upload failed — please try again.</p>
-              )}
-            </div>
-
-            <button onClick={() => setStep("done")} className="btn-ghost w-full">
-              {uploadStatus === "done" ? "Continue →" : "Skip — I'll do this later"}
+            <button onClick={() => setStep("done")} className="btn-primary w-full">
+              Continue →
             </button>
           </div>
         )}
