@@ -23,7 +23,6 @@ const savedStorageKey = "mealspy.savedVenues";
 export default function MealSpyApp() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [region, setRegion] = useState("Auckland");
-  const [radius, setRadius] = useState(15);
   const [category, setCategory] = useState<FoodCategory | "all">("all");
   const [venues, setVenues] = useState<VenueWithMeta[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,14 +73,14 @@ export default function MealSpyApp() {
     setLoading(true);
     const params = new URLSearchParams({
       lat: String(coords.lat), lng: String(coords.lng),
-      radiusKm: String(radius), region, category,
+      radiusKm: "9999", region, category,
     });
     fetch(`/api/food/venues?${params}`)
       .then((r) => r.json())
       .then((d) => setVenues(Array.isArray(d.venues) ? d.venues : []))
       .catch(() => setVenues([]))
       .finally(() => setLoading(false));
-  }, [coords, radius, category, region]);
+  }, [coords, category, region]);
 
   async function expandVenue(venue: VenueWithMeta) {
     if (expandedId === venue.id) { setExpandedId(null); return; }
@@ -230,10 +229,6 @@ export default function MealSpyApp() {
               <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">{regions.map((r) => <option key={r}>{r}</option>)}</select>
             </label>
             <label className="block">
-              <span className="text-xs font-semibold text-[#a09c98]">Radius — {radius} km</span>
-              <input type="range" min={1} max={30} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="mt-3 w-full accent-[#e8472a]" />
-            </label>
-            <label className="block">
               <span className="text-xs font-semibold text-[#a09c98]">Budget</span>
               <select value={priceCap} onChange={(e) => setPriceCap(e.target.value)} className="control mt-1 w-full text-sm">
                 <option value="all">Any price</option>
@@ -272,7 +267,7 @@ export default function MealSpyApp() {
         {/* Status row */}
         <div className="flex items-center justify-between px-1">
           <p className="text-xs text-[#a09c98]">
-            {loading ? "Finding places…" : `${filtered.length} place${filtered.length !== 1 ? "s" : ""} within ${radius} km`}
+            {loading ? "Finding places…" : `${filtered.length} place${filtered.length !== 1 ? "s" : ""} near you`}
           </p>
           {hasDeals && !loading && (
             <span className="text-xs font-semibold text-[#e8472a]">🔥 {dealCount} deal spot{dealCount !== 1 ? "s" : ""}</span>
@@ -283,10 +278,9 @@ export default function MealSpyApp() {
         {!loading && coords !== null && filtered.length === 0 && (
           <div className="rounded-2xl bg-white px-6 py-12 text-center shadow-sm">
             <p className="text-4xl mb-3">🍽️</p>
-            <p className="font-semibold text-[#1a1714]">Nothing within {radius} km</p>
-            <p className="mt-1 text-sm text-[#a09c98]">Try a wider radius or list your place — it&apos;s free.</p>
+            <p className="font-semibold text-[#1a1714]">No places found yet</p>
+            <p className="mt-1 text-sm text-[#a09c98]">Be the first to list a place — it&apos;s free.</p>
             <div className="mt-4 flex flex-col items-center gap-2">
-              {radius < 30 && <button onClick={() => setRadius(Math.min(radius + 10, 30))} className="rounded-2xl bg-[#e8472a] px-5 py-2.5 text-sm font-bold text-white">Expand to {Math.min(radius + 10, 30)} km</button>}
               <Link href="/list" className="text-sm font-semibold text-[#e8472a] underline">List a place</Link>
             </div>
           </div>
