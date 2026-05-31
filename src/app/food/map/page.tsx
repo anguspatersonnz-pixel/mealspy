@@ -11,7 +11,6 @@ import type { FoodMapVenue } from "@/components/FoodMap";
 export default function FoodMapPage() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [region, setRegion] = useState("Auckland");
-  const [radius, setRadius] = useState(15);
   const [category, setCategory] = useState<FoodCategory | "all">("all");
   const [venues, setVenues] = useState<FoodMapVenue[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,14 +34,14 @@ export default function FoodMapPage() {
     setLoading(true);
     const params = new URLSearchParams({
       lat: String(coords.lat), lng: String(coords.lng),
-      radiusKm: String(radius), region, category,
+      radiusKm: "9999", region, category,
     });
     fetch(`/api/food/venues?${params}`)
       .then((r) => r.json())
       .then((d) => setVenues(Array.isArray(d.venues) ? d.venues : []))
       .catch(() => setVenues([]))
       .finally(() => setLoading(false));
-  }, [coords, radius, region, category]);
+  }, [coords, region, category]);
 
   function locate() {
     if (!navigator.geolocation) { setCoords(regionCentres.Auckland); return; }
@@ -93,16 +92,12 @@ export default function FoodMapPage() {
       {/* Filter drawer */}
       {showFilters && (
         <div className="z-10 border-b border-[#ece8e3] bg-white px-3 py-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="text-xs font-semibold text-[#a09c98]">City</span>
+              <span className="text-xs font-semibold text-[#a09c98]">Jump to city</span>
               <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">
                 {regions.map((r) => <option key={r}>{r}</option>)}
               </select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-[#a09c98]">Radius — {radius} km</span>
-              <input type="range" min={1} max={30} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="mt-2 w-full accent-[#e8472a]" />
             </label>
             <label className="block">
               <span className="text-xs font-semibold text-[#a09c98]">Type</span>

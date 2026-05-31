@@ -66,7 +66,7 @@ function FitMap({ centre, venues }: { centre: Props["centre"]; venues: FoodMapVe
 }
 
 export default function FoodMap({ venues, centre, activeId, onActive }: Props) {
-  const shown = venues.slice(0, 40);
+  const shown = venues.slice(0, 500);
   const active = shown.find((v) => v.id === activeId);
 
   return (
