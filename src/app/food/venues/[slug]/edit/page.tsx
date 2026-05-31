@@ -1,17 +1,17 @@
 "use client";
 
-import { ArrowLeft, Camera, Check, ClipboardList, Pencil, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Camera, Check, ClipboardList, Image as ImageIcon, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { FoodItem, FoodVenue } from "@/lib/data";
 import { money } from "@/lib/data";
 
-type EditingItem = { name: string; price: string; description: string; isDeal: boolean; dealNote: string };
-type PreviewItem = { name: string; price: number; category: string | null; description: string | null; isDeal: boolean; dealNote: string | null; selected: boolean };
-type Mode = "list" | "paste" | "photo";
+type EditingItem = { name: string; price: string; description: string; isDeal: boolean; dealNote: string; imageUrl: string };
+type PreviewItem = { name: string; price: number; category: string | null; description: string | null; isDeal: boolean; dealNote: string | null; imageUrl: string | null; selected: boolean };
+type Mode = "list" | "paste" | "photo" | "specials";
 
-const EMPTY_EDIT: EditingItem = { name: "", price: "", description: "", isDeal: false, dealNote: "" };
+const EMPTY_EDIT: EditingItem = { name: "", price: "", description: "", isDeal: false, dealNote: "", imageUrl: "" };
 
 export default function EditVenuePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -46,6 +46,16 @@ export default function EditVenuePage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Specials mode
+  const [specialItem, setSpecialItem] = useState<EditingItem>({ ...EMPTY_EDIT, isDeal: true });
+  const [addingSpecial, setAddingSpecial] = useState(false);
+  const [specialDone, setSpecialDone] = useState(false);
+
+  // Delist
+  const [delisting, setDelisting] = useState(false);
+  const [delisted, setDelisted] = useState(false);
+  const [showDelistConfirm, setShowDelistConfirm] = useState(false);
+
   useEffect(() => {
     if (!token) { setAuthError(true); setLoading(false); return; }
     fetch(`/api/food/venues/${slug}/items`)
@@ -64,7 +74,7 @@ export default function EditVenuePage() {
   // ── Single item helpers ───────────────────────────────────────────────────
   function startEdit(item: FoodItem) {
     setEditingId(item.id);
-    setEditDraft({ name: item.name, price: String(item.price), description: item.description ?? "", isDeal: item.isDeal, dealNote: item.dealNote ?? "" });
+    setEditDraft({ name: item.name, price: String(item.price), description: item.description ?? "", isDeal: item.isDeal, dealNote: item.dealNote ?? "", imageUrl: (item as { imageUrl?: string }).imageUrl ?? "" });
   }
 
   async function saveEdit(itemId: string) {
@@ -73,7 +83,7 @@ export default function EditVenuePage() {
       const res = await fetch(`/api/food/venues/${slug}/items`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id: itemId, name: editDraft.name.trim(), price: Number(editDraft.price), description: editDraft.description.trim() || null, isDeal: editDraft.isDeal, dealNote: editDraft.dealNote.trim() || null }),
+        body: JSON.stringify({ id: itemId, name: editDraft.name.trim(), price: Number(editDraft.price), description: editDraft.description.trim() || null, isDeal: editDraft.isDeal, dealNote: editDraft.dealNote.trim() || null, imageUrl: editDraft.imageUrl.trim() || null }),
       });
       if (res.ok) { const d = await res.json(); setItems((p) => p.map((i) => i.id === itemId ? d.item : i)); setEditingId(null); }
     } finally { setSaving(false); }
@@ -92,10 +102,30 @@ export default function EditVenuePage() {
       const res = await fetch(`/api/food/venues/${slug}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newItem.name.trim(), price: Number(newItem.price), description: newItem.description.trim() || null, isDeal: newItem.isDeal, dealNote: newItem.dealNote.trim() || null }),
+        body: JSON.stringify({ name: newItem.name.trim(), price: Number(newItem.price), description: newItem.description.trim() || null, isDeal: newItem.isDeal, dealNote: newItem.dealNote.trim() || null, imageUrl: newItem.imageUrl.trim() || null }),
       });
       if (res.ok) { const d = await res.json(); setItems((p) => [...p, d.item]); setNewItem(EMPTY_EDIT); setShowAdd(false); }
     } finally { setAddingItem(false); }
+  }
+
+  // ── Specials ──────────────────────────────────────────────────────────────
+  async function addSpecial() {
+    if (!specialItem.name.trim() || !specialItem.price) return;
+    setAddingSpecial(true);
+    try {
+      const res = await fetch(`/api/food/venues/${slug}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: specialItem.name.trim(), price: Number(specialItem.price), description: specialItem.description.trim() || null, isDeal: true, dealNote: specialItem.dealNote.trim() || null, imageUrl: specialItem.imageUrl.trim() || null }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setItems((p) => [...p, d.item]);
+        setSpecialItem({ ...EMPTY_EDIT, isDeal: true });
+        setSpecialDone(true);
+        setTimeout(() => setSpecialDone(false), 3000);
+      }
+    } finally { setAddingSpecial(false); }
   }
 
   // ── Paste extraction ──────────────────────────────────────────────────────
@@ -114,7 +144,7 @@ export default function EditVenuePage() {
       if (!res.ok) { setExtractError(d.error ?? "Failed to extract"); return; }
       if (!d.items?.length) { setExtractError("No items found — check your formatting and try again."); return; }
       setExtractMethod(d.method ?? null);
-      setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, selected: true })));
+      setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, imageUrl: null, selected: true })));
     } catch { setExtractError("Something went wrong."); }
     finally { setExtracting(false); }
   }
@@ -146,7 +176,7 @@ export default function EditVenuePage() {
       if (!res.ok) { setExtractError(d.error ?? "Failed to extract"); return; }
       if (!d.items?.length) { setExtractError("No items found in photo. Try copy-pasting the text instead."); return; }
       setExtractMethod(d.method ?? null);
-      setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, selected: true })));
+      setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, imageUrl: null, selected: true })));
     } catch { setExtractError("Something went wrong."); }
     finally { setExtracting(false); }
   }
@@ -161,7 +191,7 @@ export default function EditVenuePage() {
         const res = await fetch(`/api/food/venues/${slug}/items`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ name: item.name, price: item.price, description: item.description, isDeal: item.isDeal, dealNote: item.dealNote }),
+          body: JSON.stringify({ name: item.name, price: item.price, description: item.description, isDeal: item.isDeal, dealNote: item.dealNote, imageUrl: item.imageUrl }),
         });
         if (res.ok) { const d = await res.json(); setItems((p) => [...p, d.item]); }
       }
@@ -170,8 +200,20 @@ export default function EditVenuePage() {
       setPreview([]);
       setPhotoFile(null);
       setPhotoPreview(null);
-      setTimeout(() => { setBulkDone(false); setMode("list"); }, 1500);
+      setTimeout(() => { setBulkDone(false); setMode("list"); }, 2500);
     } finally { setBulkSaving(false); }
+  }
+
+  // ── Delist ────────────────────────────────────────────────────────────────
+  async function delistVenue() {
+    setDelisting(true);
+    try {
+      const res = await fetch(`/api/food/venues/${slug}/delist`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) { setDelisted(true); setShowDelistConfirm(false); }
+    } finally { setDelisting(false); }
   }
 
   if (loading) return <div className="flex min-h-dvh items-center justify-center"><p className="animate-pulse text-sm text-[#a09c98]">Loading…</p></div>;
@@ -187,11 +229,29 @@ export default function EditVenuePage() {
     );
   }
 
+  if (delisted) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-4xl">👋</p>
+        <h1 className="text-lg font-semibold text-[#1a1714]">Listing removed</h1>
+        <p className="text-sm text-[#a09c98] max-w-xs">Your venue has been delisted from mealspy. Contact us if you want it reinstated.</p>
+        <Link href="/" className="btn-ghost">← Back to mealspy</Link>
+      </div>
+    );
+  }
+
   const deals = items.filter((i) => i.isDeal);
   const regular = items.filter((i) => !i.isDeal);
 
+  const tabs = [
+    { key: "list" as const, label: "Add item", icon: <Plus className="h-3.5 w-3.5" /> },
+    { key: "paste" as const, label: "Paste menu", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+    { key: "photo" as const, label: "Photo", icon: <Camera className="h-3.5 w-3.5" /> },
+    { key: "specials" as const, label: "Specials", icon: <Star className="h-3.5 w-3.5" /> },
+  ];
+
   return (
-    <div className="min-h-dvh bg-[#faf9f7]">
+    <div className="min-h-dvh bg-[#faf9f7] pb-24">
       <header className="sticky top-0 z-40 border-b border-[#ece8e3] bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3.5">
           <Link href="/" className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#ece8e3] bg-white text-[#6b6560]">
@@ -205,15 +265,11 @@ export default function EditVenuePage() {
 
         {/* Mode tabs */}
         <div className="flex border-t border-[#ece8e3]">
-          {([
-            { key: "list", label: "Add item", icon: <Plus className="h-3.5 w-3.5" /> },
-            { key: "paste", label: "Paste menu", icon: <ClipboardList className="h-3.5 w-3.5" /> },
-            { key: "photo", label: "Photo", icon: <Camera className="h-3.5 w-3.5" /> },
-          ] as const).map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => { setMode(t.key); setPreview([]); setExtractError(""); }}
-              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition border-b-2 ${mode === t.key ? "border-[#e8472a] text-[#e8472a]" : "border-transparent text-[#a09c98]"}`}
+              className={`flex flex-1 items-center justify-center gap-1 py-2.5 text-[11px] font-semibold transition border-b-2 ${mode === t.key ? "border-[#e8472a] text-[#e8472a]" : "border-transparent text-[#a09c98]"}`}
             >
               {t.icon}{t.label}
             </button>
@@ -334,7 +390,88 @@ export default function EditVenuePage() {
             {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
           </div>
         )}
+
+        {/* ── Mode: Specials ── */}
+        {mode === "specials" && (
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-[#1a1714]">Post a special or combo deal</p>
+                <p className="text-xs text-[#a09c98] mt-0.5">These appear highlighted in your menu with a 🔥 badge.</p>
+              </div>
+
+              <ItemFields draft={specialItem} setDraft={setSpecialItem} forceDeal />
+
+              {specialDone && (
+                <div className="flex items-center gap-2 rounded-xl bg-[#f0faf4] px-3 py-2.5 text-sm font-medium text-[#1a6b3c]">
+                  <Check className="h-4 w-4 flex-shrink-0" />
+                  Special added to menu!
+                </div>
+              )}
+
+              <button
+                onClick={addSpecial}
+                disabled={addingSpecial || !specialItem.name.trim() || !specialItem.price}
+                className="w-full rounded-2xl bg-[#e8472a] py-3 text-sm font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Star className="h-4 w-4" />
+                {addingSpecial ? "Posting…" : "Post special"}
+              </button>
+            </div>
+
+            {deals.length > 0 && (
+              <div className="card overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#ece8e3]"><p className="text-sm font-semibold text-[#1a1714]">🔥 Current specials ({deals.length})</p></div>
+                <div className="divide-y divide-[#ece8e3]">
+                  {deals.map((item) => (
+                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {deals.length === 0 && (
+              <div className="rounded-2xl border border-[#ece8e3] bg-white px-6 py-8 text-center">
+                <p className="text-2xl mb-2">🔥</p>
+                <p className="text-sm text-[#a09c98]">No active specials — add one above.</p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
+
+      {/* ── Delist button (fixed bottom-right) ── */}
+      <div className="fixed bottom-6 right-4 z-50">
+        {!showDelistConfirm ? (
+          <button
+            onClick={() => setShowDelistConfirm(true)}
+            className="flex items-center gap-1.5 rounded-2xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg hover:bg-red-700 transition"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Delist
+          </button>
+        ) : (
+          <div className="rounded-2xl bg-white border border-red-200 shadow-xl p-4 space-y-3 max-w-[220px]">
+            <p className="text-sm font-semibold text-[#1a1714]">Remove listing?</p>
+            <p className="text-xs text-[#6b6560]">This will hide your venue from mealspy. You can contact us to reinstate it.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={delistVenue}
+                disabled={delisting}
+                className="flex-1 rounded-xl bg-red-600 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {delisting ? "Removing…" : "Yes, remove"}
+              </button>
+              <button
+                onClick={() => setShowDelistConfirm(false)}
+                className="flex-1 rounded-xl border border-[#ece8e3] py-2 text-xs font-semibold text-[#6b6560]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -389,53 +526,83 @@ function PreviewList({ preview, setPreview, onSave, saving, done, extractMethod 
                 className="w-20 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1.5 text-sm font-semibold text-[#1a6b3c] outline-none focus:border-[#e8472a] focus:bg-white disabled:cursor-default"
               />
             </div>
-            {/* Description + deal */}
+            {/* Description + deal + image */}
             {item.selected && (
-              <div className="flex gap-2 pl-6">
+              <div className="space-y-1.5 pl-6">
                 <input
                   value={item.description ?? ""}
                   onChange={(e) => update(i, { description: e.target.value || null })}
                   placeholder="Description (optional)"
-                  className="flex-1 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1 text-xs text-[#6b6560] outline-none focus:border-[#e8472a] focus:bg-white"
+                  className="w-full rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1 text-xs text-[#6b6560] outline-none focus:border-[#e8472a] focus:bg-white"
                 />
-                <label className="flex items-center gap-1 text-xs text-[#a09c98] whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={item.isDeal}
-                    onChange={(e) => update(i, { isDeal: e.target.checked })}
-                    className="accent-[#e8472a]"
-                  />
-                  Deal
-                </label>
+                <div className="flex gap-2 items-center">
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <ImageIcon className="h-3 w-3 text-[#a09c98] flex-shrink-0" />
+                    <input
+                      value={item.imageUrl ?? ""}
+                      onChange={(e) => update(i, { imageUrl: e.target.value || null })}
+                      placeholder="Image URL (optional)"
+                      className="flex-1 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1 text-xs text-[#6b6560] outline-none focus:border-[#e8472a] focus:bg-white"
+                    />
+                  </div>
+                  <label className="flex items-center gap-1 text-xs text-[#a09c98] whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={item.isDeal}
+                      onChange={(e) => update(i, { isDeal: e.target.checked })}
+                      className="accent-[#e8472a]"
+                    />
+                    Deal
+                  </label>
+                </div>
               </div>
             )}
           </div>
         ))}
       </div>
       <div className="px-4 py-3 border-t border-[#ece8e3]">
-        <button
-          onClick={onSave}
-          disabled={saving || selectedCount === 0 || done}
-          className="w-full rounded-2xl bg-[#1a6b3c] py-3 text-sm font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {done ? <><Check className="h-4 w-4" /> Saved!</> : saving ? "Saving…" : `Add ${selectedCount} item${selectedCount !== 1 ? "s" : ""} to menu`}
-        </button>
+        {done ? (
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-[#f0faf4] py-3 text-sm font-bold text-[#1a6b3c]">
+            <Check className="h-4 w-4" /> Menu uploaded successfully!
+          </div>
+        ) : (
+          <button
+            onClick={onSave}
+            disabled={saving || selectedCount === 0}
+            className="w-full rounded-2xl bg-[#1a6b3c] py-3 text-sm font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <>
+                <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                Saving {selectedCount} item{selectedCount !== 1 ? "s" : ""}…
+              </>
+            ) : (
+              `Add ${selectedCount} item${selectedCount !== 1 ? "s" : ""} to menu`
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function ItemFields({ draft, setDraft }: { draft: EditingItem; setDraft: (d: EditingItem) => void }) {
+function ItemFields({ draft, setDraft, forceDeal }: { draft: EditingItem; setDraft: (d: EditingItem) => void; forceDeal?: boolean }) {
   return (
     <div className="space-y-2">
       <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Item name *" className="control" />
       <input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} type="number" min="0" step="0.5" placeholder="Price $ *" className="control" />
       <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Description (optional)" className="control" />
-      <label className="flex items-center gap-2 text-sm font-medium text-[#1a1714]">
-        <input type="checkbox" checked={draft.isDeal} onChange={(e) => setDraft({ ...draft, isDeal: e.target.checked })} className="h-4 w-4 rounded accent-[#e8472a]" />
-        Deal or special
-      </label>
-      {draft.isDeal && (
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-3.5 w-3.5 text-[#a09c98] flex-shrink-0" />
+        <input value={draft.imageUrl} onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })} placeholder="Image URL (optional)" className="control flex-1" />
+      </div>
+      {!forceDeal && (
+        <label className="flex items-center gap-2 text-sm font-medium text-[#1a1714]">
+          <input type="checkbox" checked={draft.isDeal} onChange={(e) => setDraft({ ...draft, isDeal: e.target.checked })} className="h-4 w-4 rounded accent-[#e8472a]" />
+          Deal or special
+        </label>
+      )}
+      {(forceDeal || draft.isDeal) && (
         <input value={draft.dealNote} onChange={(e) => setDraft({ ...draft, dealNote: e.target.value })} placeholder="Deal note (e.g. Lunch special 11am–2pm)" className="control" />
       )}
     </div>
@@ -461,8 +628,13 @@ function ItemRow({ item, isEditing, draft, setDraft, onEdit, onSave, onCancel, o
       </div>
     );
   }
+  const imageUrl = (item as { imageUrl?: string }).imageUrl;
   return (
     <div className="flex items-start gap-3 px-4 py-3">
+      {imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt={item.name} className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
+      )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[#1a1714]">{item.name}</p>
         {item.dealNote && <p className="text-xs font-medium text-[#e8472a] mt-0.5">{item.dealNote}</p>}
