@@ -371,6 +371,7 @@ export async function updateFoodItem(id: string, venueId: string, updates: Parti
     if (updates.dealNote !== undefined) updateRow.deal_note = updates.dealNote;
     if (updates.dealExpires !== undefined) updateRow.deal_expires = updates.dealExpires;
     if (updates.isAvailable !== undefined) updateRow.is_available = updates.isAvailable;
+    if (updates.imageUrl !== undefined) updateRow.image_url = updates.imageUrl;
 
     const { data, error } = await supabaseAdmin
       .from("food_items")

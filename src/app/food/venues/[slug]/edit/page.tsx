@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowLeft, Camera, Check, ClipboardList, Image as ImageIcon, Pencil, Plus, Star, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Camera, Check, ClipboardList, Download, FileSpreadsheet, Image as ImageIcon, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +9,9 @@ import { money } from "@/lib/data";
 
 type EditingItem = { name: string; price: string; description: string; isDeal: boolean; dealNote: string; imageUrl: string };
 type PreviewItem = { name: string; price: number; category: string | null; description: string | null; isDeal: boolean; dealNote: string | null; imageUrl: string | null; selected: boolean };
-type Mode = "list" | "paste" | "photo" | "specials";
+type Mode = "list" | "paste" | "csv" | "photo" | "specials";
+
+const CSV_TEMPLATE = "name,price,description,category,is_deal,deal_note\nClassic Burger,14.50,Beef patty with lettuce and tomato,Burgers,false,\nBacon Burger,16.00,Beef patty with bacon and cheese,Burgers,false,\nFlat White,5.00,,Coffee,false,\nLunch Special,18.00,Burger + drink combo,Specials,true,Available 11am–2pm";
 
 const EMPTY_EDIT: EditingItem = { name: "", price: "", description: "", isDeal: false, dealNote: "", imageUrl: "" };
 
@@ -28,6 +30,7 @@ export default function EditVenuePage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<EditingItem>(EMPTY_EDIT);
   const [saving, setSaving] = useState(false);
+  const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState<EditingItem>(EMPTY_EDIT);
   const [addingItem, setAddingItem] = useState(false);
@@ -40,6 +43,12 @@ export default function EditVenuePage() {
   const [preview, setPreview] = useState<PreviewItem[]>([]);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkDone, setBulkDone] = useState(false);
+
+  // CSV mode
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvError, setCsvError] = useState("");
+  const [csvParsing, setCsvParsing] = useState(false);
+  const csvRef = useRef<HTMLInputElement>(null);
 
   // Photo mode
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -85,7 +94,13 @@ export default function EditVenuePage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id: itemId, name: editDraft.name.trim(), price: Number(editDraft.price), description: editDraft.description.trim() || null, isDeal: editDraft.isDeal, dealNote: editDraft.dealNote.trim() || null, imageUrl: editDraft.imageUrl.trim() || null }),
       });
-      if (res.ok) { const d = await res.json(); setItems((p) => p.map((i) => i.id === itemId ? d.item : i)); setEditingId(null); }
+      if (res.ok) {
+        const d = await res.json();
+        setItems((p) => p.map((i) => i.id === itemId ? d.item : i));
+        setEditingId(null);
+        setSavedItemId(itemId);
+        setTimeout(() => setSavedItemId(null), 2500);
+      }
     } finally { setSaving(false); }
   }
 
@@ -126,6 +141,34 @@ export default function EditVenuePage() {
         setTimeout(() => setSpecialDone(false), 3000);
       }
     } finally { setAddingSpecial(false); }
+  }
+
+  // ── CSV ───────────────────────────────────────────────────────────────────
+  function downloadTemplate() {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "menu-template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function parseCsvFile() {
+    if (!csvFile) return;
+    setCsvParsing(true); setCsvError(""); setPreview([]);
+    try {
+      const text = await csvFile.text();
+      const res = await fetch(`/api/food/venues/${slug}/extract-menu`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text, mode: "csv" }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setCsvError(d.error ?? "Failed to parse CSV"); return; }
+      if (!d.items?.length) { setCsvError("No items found — check the CSV has name and price columns."); return; }
+      setExtractMethod("csv");
+      setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, imageUrl: null, selected: true })));
+    } catch { setCsvError("Something went wrong reading the file."); }
+    finally { setCsvParsing(false); }
   }
 
   // ── Paste extraction ──────────────────────────────────────────────────────
@@ -200,6 +243,7 @@ export default function EditVenuePage() {
       setPreview([]);
       setPhotoFile(null);
       setPhotoPreview(null);
+      setCsvFile(null);
       setTimeout(() => { setBulkDone(false); setMode("list"); }, 2500);
     } finally { setBulkSaving(false); }
   }
@@ -245,7 +289,8 @@ export default function EditVenuePage() {
 
   const tabs = [
     { key: "list" as const, label: "Add item", icon: <Plus className="h-3.5 w-3.5" /> },
-    { key: "paste" as const, label: "Paste menu", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+    { key: "paste" as const, label: "Paste", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+    { key: "csv" as const, label: "CSV", icon: <FileSpreadsheet className="h-3.5 w-3.5" /> },
     { key: "photo" as const, label: "Photo", icon: <Camera className="h-3.5 w-3.5" /> },
     { key: "specials" as const, label: "Specials", icon: <Star className="h-3.5 w-3.5" /> },
   ];
@@ -268,7 +313,7 @@ export default function EditVenuePage() {
           {tabs.map((t) => (
             <button
               key={t.key}
-              onClick={() => { setMode(t.key); setPreview([]); setExtractError(""); }}
+              onClick={() => { setMode(t.key); setPreview([]); setExtractError(""); setCsvError(""); }}
               className={`flex flex-1 items-center justify-center gap-1 py-2.5 text-[11px] font-semibold transition border-b-2 ${mode === t.key ? "border-[#e8472a] text-[#e8472a]" : "border-transparent text-[#a09c98]"}`}
             >
               {t.icon}{t.label}
@@ -315,7 +360,7 @@ export default function EditVenuePage() {
                 <div className="px-4 py-3 border-b border-[#ece8e3]"><p className="text-sm font-semibold text-[#1a1714]">🔥 Deals & specials</p></div>
                 <div className="divide-y divide-[#ece8e3]">
                   {deals.map((item) => (
-                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} />
+                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} justSaved={savedItemId === item.id} />
                   ))}
                 </div>
               </div>
@@ -326,7 +371,7 @@ export default function EditVenuePage() {
                 <div className="px-4 py-3 border-b border-[#ece8e3]"><p className="text-sm font-semibold text-[#1a1714]">Menu items</p></div>
                 <div className="divide-y divide-[#ece8e3]">
                   {regular.map((item) => (
-                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} />
+                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} justSaved={savedItemId === item.id} />
                   ))}
                 </div>
               </div>
@@ -356,6 +401,47 @@ export default function EditVenuePage() {
               </button>
             </div>
             {extractError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{extractError}</p>}
+            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
+          </div>
+        )}
+
+        {/* ── Mode: CSV ── */}
+        {mode === "csv" && (
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 space-y-3">
+              <p className="text-sm font-semibold text-[#1a1714]">Upload a spreadsheet</p>
+              <p className="text-xs text-[#a09c98]">Most reliable method. Download the template, fill it in Excel or Google Sheets, then upload.</p>
+
+              <button
+                onClick={downloadTemplate}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#ece8e3] bg-[#faf9f7] py-2.5 text-sm font-semibold text-[#1a1714] hover:bg-white transition"
+              >
+                <Download className="h-4 w-4 text-[#1a6b3c]" /> Download CSV template
+              </button>
+
+              <div className="rounded-lg bg-[#f5f9f7] border border-[#c8e6d4] px-3 py-2 text-xs space-y-0.5">
+                <p className="font-semibold text-[#1a6b3c]">Template columns:</p>
+                <p className="font-mono text-[10px] text-[#6b6560]">name, price, description, category, is_deal, deal_note</p>
+              </div>
+
+              <input ref={csvRef} type="file" accept=".csv,text/csv,.tsv" onChange={(e) => { setCsvFile(e.target.files?.[0] ?? null); setPreview([]); setCsvError(""); }} className="hidden" />
+              <button
+                onClick={() => csvRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#ece8e3] py-6 text-sm font-semibold text-[#a09c98] hover:border-[#e8472a] hover:text-[#e8472a] transition"
+              >
+                <FileSpreadsheet className="h-5 w-5" />
+                {csvFile ? csvFile.name : "Tap to choose CSV file"}
+              </button>
+
+              <button
+                onClick={parseCsvFile}
+                disabled={csvParsing || !csvFile}
+                className="w-full rounded-2xl bg-[#e8472a] py-3 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {csvParsing ? "Parsing…" : "Upload & parse CSV"}
+              </button>
+            </div>
+            {csvError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{csvError}</p>}
             {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
           </div>
         )}
@@ -424,7 +510,7 @@ export default function EditVenuePage() {
                 <div className="px-4 py-3 border-b border-[#ece8e3]"><p className="text-sm font-semibold text-[#1a1714]">🔥 Current specials ({deals.length})</p></div>
                 <div className="divide-y divide-[#ece8e3]">
                   {deals.map((item) => (
-                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} />
+                    <ItemRow key={item.id} item={item} isEditing={editingId === item.id} draft={editDraft} setDraft={setEditDraft} onEdit={() => startEdit(item)} onSave={() => saveEdit(item.id)} onCancel={() => setEditingId(null)} onDelete={() => deleteItem(item.id)} saving={saving} justSaved={savedItemId === item.id} />
                   ))}
                 </div>
               </div>
@@ -495,7 +581,7 @@ function PreviewList({ preview, setPreview, onSave, saving, done, extractMethod 
       <div className="px-4 py-3 border-b border-[#ece8e3] flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-[#1a1714]">Found {preview.length} items — edit before saving</p>
-          {extractMethod && <p className="text-[10px] text-[#a09c98] mt-0.5">{extractMethod === "ai" ? "✨ Read by AI" : extractMethod === "ocr" ? "🔍 Read by OCR scanner" : "📝 Parsed from text"}</p>}
+          {extractMethod && <p className="text-[10px] text-[#a09c98] mt-0.5">{extractMethod === "ai" ? "✨ Read by AI" : extractMethod === "ocr" ? "🔍 Read by OCR" : extractMethod === "csv" ? "📊 Parsed from CSV" : "📝 Parsed from text"}</p>}
         </div>
         <p className="text-xs text-[#a09c98]">{selectedCount} selected</p>
       </div>
@@ -609,9 +695,9 @@ function ItemFields({ draft, setDraft, forceDeal }: { draft: EditingItem; setDra
   );
 }
 
-function ItemRow({ item, isEditing, draft, setDraft, onEdit, onSave, onCancel, onDelete, saving }: {
+function ItemRow({ item, isEditing, draft, setDraft, onEdit, onSave, onCancel, onDelete, saving, justSaved }: {
   item: FoodItem; isEditing: boolean; draft: EditingItem; setDraft: (d: EditingItem) => void;
-  onEdit: () => void; onSave: () => void; onCancel: () => void; onDelete: () => void; saving: boolean;
+  onEdit: () => void; onSave: () => void; onCancel: () => void; onDelete: () => void; saving: boolean; justSaved?: boolean;
 }) {
   if (isEditing) {
     return (
@@ -630,15 +716,16 @@ function ItemRow({ item, isEditing, draft, setDraft, onEdit, onSave, onCancel, o
   }
   const imageUrl = (item as { imageUrl?: string }).imageUrl;
   return (
-    <div className="flex items-start gap-3 px-4 py-3">
+    <div className={`flex items-start gap-3 px-4 py-3 transition-colors ${justSaved ? "bg-[#f0faf5]" : ""}`}>
       {imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt={item.name} className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
+        <img src={imageUrl} alt={item.name} className="h-12 w-12 rounded-lg object-cover flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[#1a1714]">{item.name}</p>
         {item.dealNote && <p className="text-xs font-medium text-[#e8472a] mt-0.5">{item.dealNote}</p>}
         {item.description && <p className="text-xs text-[#a09c98] mt-0.5">{item.description}</p>}
+        {justSaved && <p className="text-xs font-semibold text-[#1a6b3c] mt-0.5 flex items-center gap-1"><Check className="h-3 w-3" /> Saved</p>}
       </div>
       <p className="flex-shrink-0 text-sm font-semibold text-[#1a6b3c]">{money(item.price)}</p>
       <div className="flex items-center gap-1 flex-shrink-0">

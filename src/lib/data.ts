@@ -65,6 +65,7 @@ export type FoodItem = {
   dealExpires: string | null;
   isAvailable: boolean;
   createdAt: string;
+  imageUrl?: string | null;
 };
 
 export type AlcoholStyle =

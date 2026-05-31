@@ -88,6 +88,7 @@ export type FoodItemRow = {
   deal_expires: string | null;
   is_available: boolean;
   created_at: string;
+  image_url?: string | null;
 };
 
 export function listingFromRow(row: ListingRow): Listing {
@@ -248,6 +249,7 @@ export function foodItemFromRow(row: FoodItemRow): FoodItem {
     dealExpires: row.deal_expires,
     isAvailable: row.is_available,
     createdAt: row.created_at,
+    imageUrl: row.image_url ?? null,
   };
 }
 
@@ -264,5 +266,6 @@ export function foodItemToRow(item: FoodItem): Omit<FoodItemRow, "created_at"> &
     deal_expires: item.dealExpires,
     is_available: item.isAvailable,
     created_at: item.createdAt,
+    image_url: item.imageUrl ?? null,
   };
 }

@@ -47,6 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     dealExpires: body.dealExpires ?? null,
     isAvailable: true,
     createdAt: new Date().toISOString(),
+    imageUrl: typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null,
   };
 
   await addFoodItem(item);
@@ -74,7 +75,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     body.price = price;
   }
 
-  const updated = await updateFoodItem(body.id, venue.id, body);
+  const patch: Partial<FoodItem> = { id: body.id };
+  if (body.name !== undefined) patch.name = body.name.trim();
+  if (body.description !== undefined) patch.description = body.description?.trim() ?? null;
+  if (body.price !== undefined) patch.price = body.price;
+  if (body.category !== undefined) patch.category = body.category?.trim() ?? null;
+  if (body.isDeal !== undefined) patch.isDeal = body.isDeal;
+  if (body.dealNote !== undefined) patch.dealNote = body.dealNote?.trim() ?? null;
+  if (body.dealExpires !== undefined) patch.dealExpires = body.dealExpires ?? null;
+  if (body.imageUrl !== undefined) patch.imageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null;
+  const updated = await updateFoodItem(body.id, venue.id, patch);
   if (!updated) return NextResponse.json({ error: "Item not found" }, { status: 404 });
   return NextResponse.json({ item: updated });
 }
