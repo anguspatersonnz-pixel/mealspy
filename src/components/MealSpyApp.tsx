@@ -261,10 +261,7 @@ export default function MealSpyApp() {
               <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-[#e8472a]" : ""}`} />
               <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
             </button>
-            <div className="flex flex-col items-center">
-              <span className="text-lg font-black tracking-tight text-[#1a1714]">🍜 mealspy</span>
-              <span className="text-[11px] font-medium text-[#a09c98] leading-none">hello</span>
-            </div>
+            <span className="text-lg font-black tracking-tight text-[#1a1714]">🍜 mealspy</span>
             <div className="absolute right-0 flex items-center gap-2">
               <Link href="/drinks" className="rounded-lg border border-[#ece8e3] px-2.5 py-1 text-xs font-bold text-[#245c3b]">🍺 yourbeer</Link>
               <button onClick={() => setShowFilters((v) => !v)} className={`rounded-xl border p-2 ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
