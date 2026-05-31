@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-NZ" className={jakarta.variable}>
       <body style={{ fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif" }}>
         <div className="w-full bg-[#e8472a] py-3 text-center text-sm font-extrabold tracking-wide text-white shadow-md">
-          🍔 Two Mates Working Hard to Save Your Credit Card 💳
+          Two Mates Working Hard to Save Your Credit Card
         </div>
         {children}
 

@@ -359,7 +359,6 @@ export default function MealSpyApp() {
             className="flex w-full items-center justify-between px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">💸</span>
               <span className="text-sm font-semibold text-[#1a1714]">Cheapest near you</span>
             </div>
             <ChevronDown className={`h-4 w-4 text-[#a09c98] transition-transform ${showCheapest ? "rotate-180" : ""}`} />
@@ -380,7 +379,6 @@ export default function MealSpyApp() {
             className="flex w-full items-center justify-between px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">🔥</span>
               <span className="text-sm font-semibold text-[#1a1714]">Deals</span>
             </div>
             <ChevronDown className={`h-4 w-4 text-[#a09c98] transition-transform ${showDeals ? "rotate-180" : ""}`} />
@@ -400,7 +398,7 @@ export default function MealSpyApp() {
             {loading ? "Finding places…" : `${filtered.length} place${filtered.length !== 1 ? "s" : ""} near you`}
           </p>
           {hasDeals && !loading && (
-            <span className="text-xs font-semibold text-[#e8472a]">🔥 {dealCount} deal spot{dealCount !== 1 ? "s" : ""}</span>
+            <span className="text-xs font-semibold text-[#e8472a]">{dealCount} deal spot{dealCount !== 1 ? "s" : ""}</span>
           )}
         </div>
 
@@ -532,7 +530,7 @@ export default function MealSpyApp() {
                         {/* Deals */}
                         {deals.length > 0 && (
                           <div>
-                            <p className="label mb-2">🔥 Deals</p>
+                            <p className="label mb-2">Deals</p>
                             <div className="space-y-2">
                               {deals.map((item) => (
                                 <div key={item.id} className="flex items-start justify-between gap-3 rounded-xl bg-[#fff8f6] border border-[#fad5ce] px-3.5 py-3">
