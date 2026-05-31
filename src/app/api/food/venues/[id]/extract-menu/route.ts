@@ -51,12 +51,10 @@ function cleanName(raw: string): string {
 function isHeading(line: string, hasPrice: boolean): boolean {
   if (hasPrice) return false;
   if (line.length > 50) return false;
-  // All caps (with spaces/& allowed)
-  if (line === line.toUpperCase() && line.length >= 3) return true;
-  // Ends with colon
+  // All caps (with spaces/& allowed) e.g. "BURGERS", "DRINKS & SIDES"
+  if (line === line.toUpperCase() && line.length >= 3 && /[A-Z]/.test(line)) return true;
+  // Ends with colon e.g. "Beverages:", "Menu and Prices:"
   if (line.endsWith(":")) return true;
-  // Title-case short line with no lowercase-start words (e.g. "Burgers & Wraps")
-  if (HEADING_RE.test(line.replace(/:$/, "").trim())) return true;
   return false;
 }
 
