@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { addFoodVenue, getFoodVenuesNear } from "@/lib/storage";
+import { addFoodVenue, getFoodVenueBySlug, getFoodVenuesNear } from "@/lib/storage";
 import { regionCentres } from "@/lib/data";
 import type { FoodVenue } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
+
+  const slug = searchParams.get("slug");
+  if (slug) {
+    const venue = await getFoodVenueBySlug(slug);
+    if (!venue) return NextResponse.json({ venues: [], count: 0 });
+    return NextResponse.json({ venues: [venue], count: 1 });
+  }
+
   const fallbackRegion = searchParams.get("region") ?? "Auckland";
   const fallback = regionCentres[fallbackRegion] ?? regionCentres.Auckland;
   const lat = Number(searchParams.get("lat") ?? fallback.lat);

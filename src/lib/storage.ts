@@ -253,10 +253,28 @@ export async function addFoodItem(item: FoodItem): Promise<FoodItem> {
   return item;
 }
 
+export async function updateFoodItem(id: string, venueId: string, updates: Partial<FoodItem>): Promise<FoodItem | null> {
+  const items = await getFoodItems();
+  const existing = items.find((i) => i.id === id && i.venueId === venueId);
+  if (!existing) return null;
+  const updated = { ...existing, ...updates, id, venueId };
+  await writeJson(foodItemsFile, items.map((i) => (i.id === id && i.venueId === venueId ? updated : i)));
+  return updated;
+}
+
 export async function deleteFoodItem(id: string, venueId: string): Promise<boolean> {
   const items = await getFoodItems();
   const filtered = items.filter((i) => !(i.id === id && i.venueId === venueId));
   if (filtered.length === items.length) return false;
   await writeJson(foodItemsFile, filtered);
   return true;
+}
+
+export async function saveMenuUpload(venueId: string, filename: string, buffer: Buffer): Promise<string> {
+  const uploadsDir = path.join(dataDir, "menu-uploads");
+  await mkdir(uploadsDir, { recursive: true });
+  const ext = path.extname(filename) || ".bin";
+  const dest = path.join(uploadsDir, `${venueId}-${Date.now()}${ext}`);
+  await writeFile(dest, buffer);
+  return dest;
 }

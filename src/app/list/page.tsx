@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckCircle, Copy, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, CheckCircle, Copy, ImagePlus, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
 import { FOOD_CATEGORIES } from "@/lib/data";
@@ -17,10 +17,10 @@ export default function ListYourPlace() {
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Item form
-  const [items, setItems] = useState<Array<{ name: string; price: string; isDeal: boolean; dealNote: string }>>([]);
-  const [newItem, setNewItem] = useState({ name: "", price: "", category: "", isDeal: false, dealNote: "" });
-  const [addingItem, setAddingItem] = useState(false);
+  // Menu upload
+  const [menuFile, setMenuFile] = useState<File | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
+  const menuInputRef = useRef<HTMLInputElement>(null);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -75,27 +75,17 @@ export default function ListYourPlace() {
     }
   }
 
-  async function addItem() {
-    if (!venue || !newItem.name.trim() || !newItem.price) return;
-    setAddingItem(true);
+  async function uploadMenu() {
+    if (!venue || !menuFile) return;
+    setUploadStatus("uploading");
     try {
-      const res = await fetch(`/api/food/venues/${venue.id}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${venue.claim_token}` },
-        body: JSON.stringify({
-          name: newItem.name.trim(),
-          price: Number(newItem.price),
-          category: newItem.category || null,
-          isDeal: newItem.isDeal,
-          dealNote: newItem.dealNote || null,
-        }),
-      });
-      if (res.ok) {
-        setItems((prev) => [...prev, newItem]);
-        setNewItem({ name: "", price: "", category: "", isDeal: false, dealNote: "" });
-      }
-    } finally {
-      setAddingItem(false);
+      const fd = new FormData();
+      fd.append("token", venue.claim_token);
+      fd.append("menu", menuFile);
+      const res = await fetch(`/api/food/venues/${venue.id}/menu-upload`, { method: "POST", body: fd });
+      setUploadStatus(res.ok ? "done" : "error");
+    } catch {
+      setUploadStatus("error");
     }
   }
 
@@ -234,12 +224,12 @@ export default function ListYourPlace() {
           </form>
         )}
 
-        {/* ── Step 2: add items ── */}
+        {/* ── Step 2: menu upload ── */}
         {step === "add-items" && venue && (
           <div className="space-y-4">
             <div className="rounded-xl border border-[#c6e8d0] bg-[#f0faf4] px-4 py-3.5">
               <p className="text-sm font-semibold text-[#1a6b3c]">Your place is live 🎉</p>
-              <p className="mt-0.5 text-sm text-[#1a6b3c]/70">Now add menu items so people know your prices.</p>
+              <p className="mt-0.5 text-sm text-[#1a6b3c]/70">Upload your menu and we&apos;ll add it for you.</p>
             </div>
 
             {/* Claim token */}
@@ -254,97 +244,90 @@ export default function ListYourPlace() {
                   {copied ? <CheckCircle className="h-4 w-4 text-[#1a6b3c]" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-[#a09c98]">You need this to add or remove items later.</p>
+              <p className="mt-2 text-xs text-[#a09c98]">You need this to edit your products and prices later.</p>
             </div>
 
-            {/* Items added so far */}
-            {items.length > 0 && (
-              <div className="card p-4">
-                <p className="label mb-3">Added so far</p>
-                <div className="divide-y divide-[#ece8e3]">
-                  {items.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                      <span className="text-sm font-medium text-[#1a1714]">
-                        {item.name}{item.isDeal && <span className="ml-1.5 text-[#e8472a]">🔥</span>}
-                      </span>
-                      <span className="text-sm font-semibold text-[#1a6b3c]">${Number(item.price).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* New item form */}
+            {/* Menu upload */}
             <div className="card p-4">
-              <h3 className="mb-3 text-sm font-semibold text-[#1a1714]">Add an item</h3>
-              <div className="space-y-2.5">
-                <input
-                  value={newItem.name}
-                  onChange={(e) => setNewItem((v) => ({ ...v, name: e.target.value }))}
-                  placeholder="Item name (e.g. Butter chicken, Flat white)"
-                  className="control"
-                />
-                <div className="grid grid-cols-2 gap-2.5">
-                  <input
-                    value={newItem.price}
-                    onChange={(e) => setNewItem((v) => ({ ...v, price: e.target.value }))}
-                    type="number" min="0" step="0.5" placeholder="Price $"
-                    className="control"
-                  />
-                  <input
-                    value={newItem.category}
-                    onChange={(e) => setNewItem((v) => ({ ...v, category: e.target.value }))}
-                    placeholder="Category (optional)"
-                    className="control"
-                  />
+              <h3 className="mb-1 text-sm font-semibold text-[#1a1714]">Upload your menu</h3>
+              <p className="mb-3 text-xs text-[#a09c98]">PDF, photo, or screenshot — we&apos;ll handle the rest. Max 20 MB.</p>
+              <input
+                ref={menuInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={(e) => { setMenuFile(e.target.files?.[0] ?? null); setUploadStatus("idle"); }}
+              />
+              {menuFile ? (
+                <div className="flex items-center gap-3 rounded-xl border border-[#ece8e3] bg-[#faf9f7] px-3.5 py-3">
+                  <span className="text-lg">{menuFile.type.startsWith("image/") ? "🖼️" : "📄"}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1a1714] truncate">{menuFile.name}</p>
+                    <p className="text-xs text-[#a09c98]">{(menuFile.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <button onClick={() => { setMenuFile(null); setUploadStatus("idle"); if (menuInputRef.current) menuInputRef.current.value = ""; }} className="text-[#a09c98] hover:text-[#e8472a] transition">
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <label className="flex items-center gap-2.5 text-sm font-medium text-[#1a1714]">
-                  <input
-                    type="checkbox"
-                    checked={newItem.isDeal}
-                    onChange={(e) => setNewItem((v) => ({ ...v, isDeal: e.target.checked }))}
-                    className="h-4 w-4 rounded accent-[#e8472a]"
-                  />
-                  This is a deal or special
-                </label>
-                {newItem.isDeal && (
-                  <input
-                    value={newItem.dealNote}
-                    onChange={(e) => setNewItem((v) => ({ ...v, dealNote: e.target.value }))}
-                    placeholder="Deal note (e.g. Lunch special 11am–2pm)"
-                    className="control"
-                  />
-                )}
+              ) : (
                 <button
-                  onClick={addItem}
-                  disabled={addingItem || !newItem.name.trim() || !newItem.price}
-                  className="btn-primary w-full disabled:opacity-50"
+                  type="button"
+                  onClick={() => menuInputRef.current?.click()}
+                  className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#ece8e3] bg-[#faf9f7] text-[#a09c98] transition hover:border-[#e8472a]/50 hover:text-[#e8472a]"
                 >
-                  {addingItem ? "Saving…" : "+ Add item"}
+                  <Upload className="h-5 w-5" />
+                  <span className="text-xs font-medium">Choose file</span>
                 </button>
-              </div>
+              )}
+
+              {menuFile && uploadStatus !== "done" && (
+                <button
+                  onClick={uploadMenu}
+                  disabled={uploadStatus === "uploading"}
+                  className="btn-primary w-full mt-3 disabled:opacity-50"
+                >
+                  {uploadStatus === "uploading" ? "Uploading…" : "Send menu"}
+                </button>
+              )}
+              {uploadStatus === "done" && (
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f0faf4] border border-[#c6e8d0] px-4 py-2.5">
+                  <CheckCircle className="h-4 w-4 text-[#1a6b3c]" />
+                  <p className="text-sm font-semibold text-[#1a6b3c]">Menu received — we&apos;ll add it shortly.</p>
+                </div>
+              )}
+              {uploadStatus === "error" && (
+                <p className="mt-2 text-xs text-red-600">Upload failed — please try again.</p>
+              )}
             </div>
 
-            <button
-              onClick={() => setStep("done")}
-              className="btn-ghost w-full"
-            >
-              {items.length === 0 ? "Skip — I'll add items later" : "Done →"}
+            <button onClick={() => setStep("done")} className="btn-ghost w-full">
+              {uploadStatus === "done" ? "Continue →" : "Skip — I'll do this later"}
             </button>
           </div>
         )}
 
         {/* ── Step 3: done ── */}
-        {step === "done" && (
-          <div className="py-12 text-center">
+        {step === "done" && venue && (
+          <div className="py-10 text-center">
             <p className="text-5xl mb-5">🎉</p>
             <h2 className="text-2xl font-bold text-[#1a1714]">You&apos;re on the map!</h2>
             <p className="mt-2 text-sm text-[#6b6560] max-w-xs mx-auto">
-              People nearby can now find your place and see your menu. Thanks for being part of mealspy.
+              People nearby can now find your place. Thanks for being part of mealspy.
             </p>
-            <Link href="/" className="btn-primary mt-7 mx-auto">
-              Browse mealspy
-            </Link>
+            <div className="mt-8 space-y-3 max-w-xs mx-auto text-left">
+              <Link
+                href={`/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
+                className="btn-primary flex items-center justify-center gap-2"
+              >
+                ✏️ Edit products, prices &amp; specials
+              </Link>
+              <Link href="/" className="btn-ghost flex items-center justify-center">
+                Browse mealspy
+              </Link>
+            </div>
+            <p className="mt-6 text-xs text-[#a09c98] max-w-xs mx-auto">
+              Bookmark your edit link — it includes your token and lets you update your listing anytime.
+            </p>
           </div>
         )}
       </main>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { addFoodItem, deleteFoodItem, getFoodItems, getFoodVenueBySlug, getFoodVenues } from "@/lib/storage";
+import { addFoodItem, deleteFoodItem, getFoodItems, getFoodVenueBySlug, getFoodVenues, updateFoodItem } from "@/lib/storage";
 import type { FoodItem } from "@/lib/data";
 
 async function resolveVenue(id: string) {
@@ -51,6 +51,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   await addFoodItem(item);
   return NextResponse.json({ item }, { status: 201 });
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const token = request.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const venue = await resolveVenue(id);
+  if (!venue || venue.claimToken !== token) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => null);
+  if (!body?.id) return NextResponse.json({ error: "item id required" }, { status: 400 });
+
+  if (body.price != null) {
+    const price = Number(body.price);
+    if (isNaN(price) || price < 0 || price > 500) {
+      return NextResponse.json({ error: "Invalid price" }, { status: 400 });
+    }
+    body.price = price;
+  }
+
+  const updated = await updateFoodItem(body.id, venue.id, body);
+  if (!updated) return NextResponse.json({ error: "Item not found" }, { status: 404 });
+  return NextResponse.json({ item: updated });
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
