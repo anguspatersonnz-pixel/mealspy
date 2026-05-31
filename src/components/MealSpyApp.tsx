@@ -1,6 +1,6 @@
 "use client";
 
-import { Beer, Bell, ChevronDown, ChevronUp, Heart, LocateFixed, Map, MapPin, Navigation, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Tag, TrendingDown, User, WalletCards, X } from "lucide-react";
+import { Beer, Bell, ChevronDown, ChevronUp, Heart, LocateFixed, Map, MapPin, Navigation, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Tag, TrendingDown, User, WalletCards, X } from "lucide-react"; // Sparkles kept for sort button
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FOOD_CATEGORIES, money, regionCentres, regions } from "@/lib/data";
@@ -241,24 +241,6 @@ export default function MealSpyApp() {
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Account</span>
               </Link>
-            </div>
-          </div>
-
-          <div className="pb-3">
-            <div className="rounded-2xl border border-[#fad5ce] bg-[#fff8f6] px-4 py-3">
-              <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#e8472a]" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-[#1a1714]">
-                    {topDeal ? `${topDeal.dealCount} deal${topDeal.dealCount !== 1 ? "s" : ""} spotted at ${topDeal.name}` : "Find the best-value food around you"}
-                  </p>
-                  <p className="mt-0.5 text-xs leading-5 text-[#6b6560]">
-                    {cheapestVenue?.cheapestPrice != null
-                      ? `Cheapest visible menu starts at ${money(cheapestVenue.cheapestPrice)} near ${cheapestVenue.suburb || cheapestVenue.city}.`
-                      : "Search, filter by budget, save favourites, and jump straight to the places worth trying."}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
