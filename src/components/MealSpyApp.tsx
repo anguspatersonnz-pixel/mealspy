@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, ChevronUp, Heart, LocateFixed, MapPin, Navigation, Search, SlidersHorizontal, Tag, X } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, Heart, LocateFixed, MapPin, Menu, Navigation, Search, SlidersHorizontal, Tag, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FOOD_CATEGORIES, isOpenNow, money, regionCentres, regions } from "@/lib/data";
@@ -102,7 +102,18 @@ export default function MealSpyApp() {
   const [splashDone, setSplashDone] = useState(false);
   const [showCheapest, setShowCheapest] = useState(false);
   const [showDeals, setShowDeals] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const aboutRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showAbout) return;
+    function handleClick(e: MouseEvent) {
+      if (aboutRef.current && !aboutRef.current.contains(e.target as Node)) setShowAbout(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showAbout]);
 
   useEffect(() => {
     try {
@@ -243,7 +254,7 @@ export default function MealSpyApp() {
 
       {/* ── Header ── */}
       <header className="sticky top-0 z-40 bg-white border-b border-[#ece8e3]">
-        <div className="mx-auto w-full max-w-4xl px-4">
+        <div className="mx-auto w-full max-w-7xl px-4">
           {/* Top bar — centred logo */}
           <div className="relative flex h-14 items-center justify-center">
             <button onClick={locate} disabled={locating} className="absolute left-0 flex items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
@@ -256,6 +267,20 @@ export default function MealSpyApp() {
               <button onClick={() => setShowFilters((v) => !v)} className={`rounded-xl border p-2 ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
                 <SlidersHorizontal className="h-4 w-4" />
               </button>
+              <div ref={aboutRef} className="relative">
+                <button onClick={() => setShowAbout((v) => !v)} className={`rounded-xl border p-2 ${showAbout ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
+                  <Menu className="h-4 w-4" />
+                </button>
+                {showAbout && (
+                  <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-[#ece8e3] bg-white shadow-lg z-50 p-4">
+                    <p className="text-sm font-bold text-[#1a1714] mb-2">About mealspy 🍜</p>
+                    <p className="text-xs leading-relaxed text-[#6b6560]">
+                      Ever rocked up somewhere new and had no idea what was around you — let alone what was cheap? That&apos;s exactly why we built mealspy. Whether you&apos;re on lunch, exploring a new suburb, or just broke, we surface the best value food and deals near you in seconds. No ads, no fluff — just what&apos;s nearby and how much it costs.
+                    </p>
+                    <p className="mt-3 text-[11px] text-[#a09c98]">Two mates working hard to save your credit card. 💳</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -316,7 +341,7 @@ export default function MealSpyApp() {
       </header>
 
       {/* ── List ── */}
-      <main className="flex-1 px-3 py-3 space-y-2.5 mx-auto w-full max-w-4xl">
+      <main className="flex-1 px-3 py-3 space-y-2.5 mx-auto w-full max-w-7xl">
 
         {/* ── Cheapest near you ── */}
         <div className="rounded-2xl border border-[#ece8e3] bg-white overflow-hidden">
