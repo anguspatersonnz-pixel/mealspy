@@ -156,9 +156,12 @@ export default function YourBeerApp() {
             <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
           </button>
           <span className="text-lg font-black tracking-tight text-[#1a1714]">🍺 yourbeer</span>
-          <button onClick={() => setShowFilters((v) => !v)} className={`absolute right-4 rounded-xl border p-2 ${showFilters ? "border-[#245c3b] bg-[#f0faf4] text-[#245c3b]" : "border-[#ece8e3] text-[#6b6560]"}`}>
-            <SlidersHorizontal className="h-4 w-4" />
-          </button>
+          <div className="absolute right-4 flex items-center gap-2">
+            <Link href="/" className="rounded-lg border border-[#ece8e3] px-2.5 py-1 text-xs font-bold text-[#e8472a]">🍜 mealspy</Link>
+            <button onClick={() => setShowFilters((v) => !v)} className={`rounded-xl border p-2 ${showFilters ? "border-[#245c3b] bg-[#f0faf4] text-[#245c3b]" : "border-[#ece8e3] text-[#6b6560]"}`}>
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Search */}
