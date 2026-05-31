@@ -25,6 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-NZ" className={jakarta.variable}>
       <body style={{ fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif" }}>
+        <div className="w-full bg-[#e8472a] py-2 text-center text-sm font-semibold text-white">
+          just two kiwi mates helping you save great
+        </div>
         {children}
 
         <footer className="mt-16 border-t border-[#ece8e3] bg-white py-10">
