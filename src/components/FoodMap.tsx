@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { DivIcon, LatLngBoundsExpression } from "leaflet";
+import { DivIcon } from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { money } from "@/lib/data";
 import "leaflet/dist/leaflet.css";
@@ -52,16 +52,11 @@ const userIcon = new DivIcon({
   iconAnchor: [10, 10],
 });
 
-function FitMap({ centre, venues }: { centre: Props["centre"]; venues: FoodMapVenue[] }) {
+function FitMap({ centre }: { centre: Props["centre"] }) {
   const map = useMap();
   useEffect(() => {
-    if (!venues.length) { map.setView([centre.lat, centre.lng], 13); return; }
-    const points: LatLngBoundsExpression = [
-      [centre.lat, centre.lng],
-      ...venues.slice(0, 25).map((v) => [v.lat, v.lng] as [number, number]),
-    ];
-    map.fitBounds(points, { padding: [32, 32], maxZoom: 15 });
-  }, [centre, venues, map]);
+    map.setView([centre.lat, centre.lng], 14);
+  }, [centre, map]);
   return null;
 }
 
@@ -106,7 +101,7 @@ export default function FoodMap({ venues, centre, activeId, onActive }: Props) {
             </Popup>
           </Marker>
         ))}
-        <FitMap centre={centre} venues={shown} />
+        <FitMap centre={centre} />
       </MapContainer>
 
       {/* Active venue card overlay */}

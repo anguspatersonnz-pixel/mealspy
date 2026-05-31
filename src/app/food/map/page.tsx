@@ -19,14 +19,7 @@ export default function FoodMapPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: "geolocation" }).then((r) => {
-        if (r.state === "granted") locate();
-        else setCoords(regionCentres.Auckland);
-      });
-    } else {
-      locate();
-    }
+    locate();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -49,7 +42,7 @@ export default function FoodMapPage() {
     navigator.geolocation.getCurrentPosition(
       (pos) => { setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setRegion("Near me"); setLocating(false); },
       () => { setCoords(regionCentres.Auckland); setLocating(false); },
-      { enableHighAccuracy: true, timeout: 6000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }
 
