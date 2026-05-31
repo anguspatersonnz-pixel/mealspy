@@ -168,7 +168,16 @@ export default function MealSpyApp() {
   if (!locationAsked && !coords) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white px-6 text-center">
-        <span className="text-6xl">🍜</span>
+        {/* Animated noodle bowl */}
+        <div className="relative flex flex-col items-center">
+          {/* Steam wisps */}
+          <div className="absolute -top-6 flex gap-3">
+            <span className="steam-1 inline-block h-5 w-1.5 rounded-full bg-[#e8472a]/20 blur-[2px]" />
+            <span className="steam-2 inline-block h-6 w-1.5 rounded-full bg-[#e8472a]/25 blur-[2px]" />
+            <span className="steam-3 inline-block h-5 w-1.5 rounded-full bg-[#e8472a]/20 blur-[2px]" />
+          </div>
+          <span className="inline-block text-7xl select-none" style={{ animation: "bowl-pop-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both, bowl-float 2.8s ease-in-out 0.55s infinite" }}>🍜</span>
+        </div>
         <div>
           <h1 className="text-3xl font-black text-[#1a1714]">mealspy</h1>
           <p className="mt-2 text-sm text-[#a09c98]">Cheap food and deals near you</p>

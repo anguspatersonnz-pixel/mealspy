@@ -34,6 +34,29 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .leaflet-container { height: 100%; width: 100%; }
 .leaflet-popup-content { margin: 10px 12px; font-size: 13px; }
 
+@keyframes bowl-float {
+  0%, 100% { transform: translateY(0px) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes steam-rise {
+  0% { opacity: 0; transform: translateY(0) scaleX(1); }
+  30% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-24px) scaleX(1.4); }
+}
+
+@keyframes bowl-pop-in {
+  0% { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+  60% { transform: scale(1.12) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.bowl-float { animation: bowl-float 2.8s ease-in-out infinite; }
+.bowl-pop-in { animation: bowl-pop-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+.steam-1 { animation: steam-rise 2s ease-in-out 0.6s infinite; }
+.steam-2 { animation: steam-rise 2s ease-in-out 1.0s infinite; }
+.steam-3 { animation: steam-rise 2s ease-in-out 1.4s infinite; }
+
 @layer components {
   /* Inputs & selects */
   .control {
