@@ -70,6 +70,22 @@ function parseWithRegex(text: string) {
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
+    // ── Price on next line (name\n$price) ──────────────────────────────────
+    const nextTrimmed = lines[i + 1]?.trim();
+    if (nextTrimmed) {
+      const nextPrice = extractPrice(nextTrimmed);
+      // Current line has no price, next line IS a price
+      if (nextPrice !== null && !extractPrice(trimmed) && !isHeading(trimmed, false) && trimmed.length >= 2 && trimmed.length < 80) {
+        const name = cleanName(trimmed);
+        if (name) {
+          const isDeal = DEAL_WORDS.test(name);
+          items.push({ name, price: nextPrice, category: currentCategory, description: null, isDeal, dealNote: isDeal ? name : null });
+          i++; // consume the price line
+          continue;
+        }
+      }
+    }
+
     // ── Try tab-separated ──────────────────────────────────────────────────
     const tabMatch = trimmed.match(TAB_RE);
     if (tabMatch) {
