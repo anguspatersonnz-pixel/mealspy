@@ -221,7 +221,7 @@ export async function getFoodVenuesNear(params: {
   lng: number;
   radiusKm: number;
   category?: string;
-}): Promise<(FoodVenue & { cheapestPrice: number | null; dealCount: number })[]> {
+}): Promise<(FoodVenue & { cheapestPrice: number | null; dealCount: number; searchableText: string })[]> {
   const venues = await getFoodVenues();
   const items = await getFoodItems();
   const now = new Date();
@@ -234,11 +234,24 @@ export async function getFoodVenuesNear(params: {
       const dealCount = venueItems.filter(
         (i) => i.isDeal && (!i.dealExpires || new Date(i.dealExpires) > now)
       ).length;
+      const searchableText = [
+        v.name,
+        v.suburb,
+        v.city,
+        v.category,
+        v.address,
+        v.description,
+        ...venueItems.flatMap((i) => [i.name, i.description, i.category, i.dealNote]),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
       return {
         ...v,
         distanceKm: Number(distanceKm(params, v).toFixed(1)),
         cheapestPrice,
         dealCount,
+        searchableText,
       };
     })
     .filter((v) => v.distanceKm <= params.radiusKm)

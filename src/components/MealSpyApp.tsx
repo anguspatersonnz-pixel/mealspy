@@ -70,7 +70,7 @@ function NoodleIntro() {
   );
 }
 
-type VenueWithMeta = FoodVenue & { cheapestPrice: number | null; dealCount: number };
+type VenueWithMeta = FoodVenue & { cheapestPrice: number | null; dealCount: number; searchableText?: string };
 type SortMode = "smart" | "deals" | "price" | "nearby";
 type AccountProfile = {
   name?: string;
@@ -87,7 +87,7 @@ const savedStorageKey = "mealspy.savedVenues";
 export default function MealSpyApp() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [region, setRegion] = useState("Auckland");
-  const [category, setCategory] = useState<FoodCategory | "all">("all");
+  const [category] = useState<FoodCategory | "all">("all");
   const [venues, setVenues] = useState<VenueWithMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -199,24 +199,38 @@ export default function MealSpyApp() {
     const searched = !q
       ? venues
       : venues.filter((v) =>
-          [v.name, v.suburb, v.city, v.category, v.description].some((f) => f?.toLowerCase().includes(q))
+          (v.searchableText ?? [v.name, v.suburb, v.city, v.category, v.address, v.description].filter(Boolean).join(" ").toLowerCase()).includes(q)
         );
     const budgeted = maxPrice == null
       ? searched
       : searched.filter((v) => v.cheapestPrice == null || v.cheapestPrice <= maxPrice);
+    const maxDistance = Math.max(...budgeted.map((v) => v.distanceKm ?? 0), 0);
+    const prices = budgeted.map((v) => v.cheapestPrice).filter((price): price is number => price != null);
+    const minPrice = prices.length ? Math.min(...prices) : 0;
+    const maxKnownPrice = prices.length ? Math.max(...prices) : 0;
+    const priceRange = maxKnownPrice - minPrice;
 
     return [...budgeted].sort((a, b) => {
       if (sortMode === "deals") return b.dealCount - a.dealCount;
       if (sortMode === "price") return (a.cheapestPrice ?? 9999) - (b.cheapestPrice ?? 9999);
       if (sortMode === "nearby") return (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999);
 
-      const aSaved = savedVenueIds.includes(a.id) ? 3 : 0;
-      const bSaved = savedVenueIds.includes(b.id) ? 3 : 0;
-      const aScore = aSaved + a.dealCount * 2 - (a.cheapestPrice ?? 30) / 20 - (a.distanceKm ?? 5) / 10;
-      const bScore = bSaved + b.dealCount * 2 - (b.cheapestPrice ?? 30) / 20 - (b.distanceKm ?? 5) / 10;
+      const score = (venue: VenueWithMeta) => {
+        const distanceScore = maxDistance > 0 ? 1 - ((venue.distanceKm ?? maxDistance) / maxDistance) : 1;
+        const priceScore = venue.cheapestPrice == null
+          ? 0
+          : priceRange > 0
+            ? 1 - ((venue.cheapestPrice - minPrice) / priceRange)
+            : 1;
+        return distanceScore + priceScore;
+      };
+      const aScore = score(a);
+      const bScore = score(b);
+      if (bScore !== aScore) return bScore - aScore;
+      if ((a.cheapestPrice ?? 9999) !== (b.cheapestPrice ?? 9999)) return (a.cheapestPrice ?? 9999) - (b.cheapestPrice ?? 9999);
       return bScore - aScore;
     });
-  }, [venues, query, priceCap, sortMode, savedVenueIds]);
+  }, [venues, query, priceCap, sortMode]);
 
   const now = new Date();
   const hasDeals = filtered.some((v) => v.dealCount > 0);
@@ -256,14 +270,16 @@ export default function MealSpyApp() {
       <header className="sticky top-0 z-40 bg-white border-b border-[#ece8e3]">
         <div className="mx-auto w-full max-w-7xl px-4">
           {/* Top bar — centred logo */}
-          <div className="relative flex h-14 items-center justify-center">
-            <button onClick={locate} disabled={locating} className="absolute left-0 flex items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
+          <div className="grid h-14 grid-cols-[minmax(58px,1fr)_auto_minmax(96px,1fr)] items-center gap-2">
+            <button onClick={locate} disabled={locating} className="flex min-w-0 items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
               <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-[#e8472a]" : ""}`} />
-              <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
+              <span className="truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
             </button>
-            <span className="text-lg font-black tracking-tight text-[#1a1714]">🍜 mealspy</span>
-            <div className="absolute right-0 flex items-center gap-2">
-              <Link href="/drinks" className="rounded-lg border border-[#ece8e3] px-2.5 py-1 text-xs font-bold text-[#245c3b]">🍺 yourbeer</Link>
+            <div className="flex min-w-0 flex-col items-center px-1 text-center">
+              <span className="whitespace-nowrap text-base font-black tracking-tight text-[#1a1714] sm:text-lg">🍜 mealspy</span>
+            </div>
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+              <Link href="/drinks" aria-label="Switch to yourbeer" title="Switch to yourbeer" className="rounded-lg border border-[#ece8e3] px-2 py-1 text-xs font-bold text-[#245c3b] sm:px-2.5">🍺 <span className="hidden sm:inline">yourbeer</span></Link>
               <button onClick={() => setShowFilters((v) => !v)} className={`rounded-xl border p-2 ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
                 <SlidersHorizontal className="h-4 w-4" />
               </button>
@@ -290,7 +306,7 @@ export default function MealSpyApp() {
                 ref={searchRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a place or suburb…"
+                placeholder="Search meals, places, or suburbs…"
                 className="h-10 w-full rounded-xl bg-[#f5f5f5] pl-9 pr-8 text-sm text-[#1a1714] outline-none placeholder:text-[#c0bbb7] focus:bg-white focus:ring-2 focus:ring-[#e8472a]/20 transition"
               />
               {query && <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c0bbb7]"><X className="h-4 w-4" /></button>}
@@ -299,7 +315,7 @@ export default function MealSpyApp() {
 
           {/* Filter panel */}
           {showFilters && (
-            <div className="border-t border-[#ece8e3] -mx-4 px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="border-t border-[#ece8e3] -mx-4 px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               <label className="block">
                 <span className="text-xs font-semibold text-[#a09c98]">City</span>
                 <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">{regions.map((r) => <option key={r}>{r}</option>)}</select>
@@ -325,16 +341,6 @@ export default function MealSpyApp() {
               </label>
             </div>
           )}
-
-          {/* Category chips */}
-          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2.5 pt-0 scrollbar-hide">
-            <button onClick={() => setCategory("all")} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === "all" ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>All</button>
-            {FOOD_CATEGORIES.map((c) => (
-              <button key={c.value} onClick={() => setCategory(c.value)} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === c.value ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>
-                {c.emoji} {c.label}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 
