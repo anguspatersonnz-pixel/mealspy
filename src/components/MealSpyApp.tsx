@@ -160,7 +160,7 @@ export default function MealSpyApp() {
     <div className="min-h-dvh">
       {/* ── Header ── */}
       <header className="sticky top-0 z-40 border-b border-[#ece8e3] bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-2xl px-4">
+        <div className="mx-auto max-w-6xl px-4">
           {/* Top bar */}
           <div className="flex items-center justify-between gap-3 py-3.5">
             <div className="flex items-center gap-2.5">
@@ -308,8 +308,9 @@ export default function MealSpyApp() {
       </header>
 
       {/* ── Main ── */}
-      <main className="mx-auto max-w-2xl px-4 py-5">
-        <section className="mb-4 grid grid-cols-3 gap-2">
+      <main className="mx-auto grid max-w-6xl gap-5 px-4 py-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="space-y-4 lg:sticky lg:top-40 lg:self-start">
+        <section className="grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
             <TrendingDown className="mb-1 h-4 w-4 text-[#1a6b3c]" />
             <p className="text-lg font-bold leading-none text-[#1a1714]">{cheapestVenue?.cheapestPrice != null ? money(cheapestVenue.cheapestPrice) : "--"}</p>
@@ -327,7 +328,7 @@ export default function MealSpyApp() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-2xl border border-[#d7ece0] bg-[#f4fbf7] px-4 py-3">
+        <section className="rounded-2xl border border-[#d7ece0] bg-[#f4fbf7] px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-[#173f2a]">{firstName ? `${firstName}'s picks` : "Make it yours"}</p>
@@ -345,7 +346,7 @@ export default function MealSpyApp() {
         </section>
 
         {/* Status + CTA */}
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#ece8e3] bg-white px-4 py-3">
           <p className="text-sm text-[#6b6560]">
             {loading ? (
               <span className="animate-pulse">Finding places…</span>
@@ -365,7 +366,7 @@ export default function MealSpyApp() {
           </div>
         </div>
 
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide lg:grid lg:grid-cols-2 lg:overflow-visible">
           {([
             ["smart", "Best match", Sparkles],
             ["deals", "Deals", Tag],
@@ -382,6 +383,9 @@ export default function MealSpyApp() {
             </button>
           ))}
         </div>
+        </aside>
+
+        <section className="min-w-0">
 
         {/* Deals banner */}
         {hasDeals && !loading && (
@@ -408,7 +412,7 @@ export default function MealSpyApp() {
         )}
 
         {/* Venue cards */}
-        <div className="grid gap-3">
+        <div className="grid gap-3 xl:grid-cols-2">
           {filtered.map((venue) => {
             const catInfo = FOOD_CATEGORIES.find((c) => c.value === venue.category);
             const expanded = expandedId === venue.id;
@@ -581,6 +585,7 @@ export default function MealSpyApp() {
             </p>
           </div>
         )}
+        </section>
       </main>
     </div>
   );

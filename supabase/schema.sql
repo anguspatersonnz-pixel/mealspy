@@ -58,9 +58,49 @@ create index if not exists seller_applications_created_at_idx on public.seller_a
 create index if not exists venues_region_type_idx on public.venues (region, type);
 create index if not exists venues_lat_lng_idx on public.venues (lat, lng);
 
+create table if not exists public.food_venues (
+  id text primary key,
+  name text not null,
+  slug text not null unique,
+  category text not null check (category in ('restaurant', 'cafe', 'bakery', 'food-truck', 'takeaway', 'dairy')),
+  address text not null default '',
+  suburb text not null default '',
+  city text not null,
+  lat double precision not null,
+  lng double precision not null,
+  phone text,
+  website text,
+  description text,
+  image_url text,
+  claim_token text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.food_items (
+  id text primary key,
+  venue_id text not null references public.food_venues(id) on delete cascade,
+  name text not null,
+  description text,
+  price numeric(10, 2) not null check (price >= 0),
+  category text,
+  is_deal boolean not null default false,
+  deal_note text,
+  deal_expires timestamptz,
+  is_available boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists food_venues_slug_idx on public.food_venues (slug);
+create index if not exists food_venues_city_category_idx on public.food_venues (city, category);
+create index if not exists food_venues_lat_lng_idx on public.food_venues (lat, lng);
+create index if not exists food_items_venue_id_idx on public.food_items (venue_id);
+create index if not exists food_items_deals_idx on public.food_items (is_deal, is_available, deal_expires);
+
 alter table public.seller_applications enable row level security;
 alter table public.listings enable row level security;
 alter table public.venues enable row level security;
+alter table public.food_venues enable row level security;
+alter table public.food_items enable row level security;
 
 drop policy if exists "public can read listings" on public.listings;
 create policy "public can read listings"
@@ -70,6 +110,16 @@ create policy "public can read listings"
 drop policy if exists "public can read venues" on public.venues;
 create policy "public can read venues"
   on public.venues for select
+  using (true);
+
+drop policy if exists "public can read food venues" on public.food_venues;
+create policy "public can read food venues"
+  on public.food_venues for select
+  using (true);
+
+drop policy if exists "public can read food items" on public.food_items;
+create policy "public can read food items"
+  on public.food_items for select
   using (true);
 
 -- Writes go through the Next.js API using SUPABASE_SERVICE_ROLE_KEY.

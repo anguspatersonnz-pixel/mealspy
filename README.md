@@ -28,6 +28,13 @@ YOURBEER_ADMIN_TOKEN=...
 
 Without those env vars, the API falls back to local `.data` files for development.
 
+MealSpy food listings use the same Supabase project. The schema creates:
+
+- `food_venues` for places submitted through `/list`
+- `food_items` for menu items, specials, and prices
+
+Public users can read food venues/items, but writes still go through the Next.js API using `SUPABASE_SERVICE_ROLE_KEY`. In Vercel, add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` under Project Settings → Environment Variables, then redeploy.
+
 ## Seller and specials backend
 
 The high-level model is:

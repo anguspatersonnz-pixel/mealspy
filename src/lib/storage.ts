@@ -5,6 +5,10 @@ import { Listing } from "./data";
 import { distanceKm, starterVenues, type FoodItem, type FoodVenue, type Venue, type VenueType } from "./data";
 import {
   applicationToRow,
+  foodItemFromRow,
+  foodItemToRow,
+  foodVenueFromRow,
+  foodVenueToRow,
   hasSupabase,
   listingFromRow,
   listingToRow,
@@ -12,6 +16,8 @@ import {
   venueFromRow,
   venueToRow,
   type ListingRow,
+  type FoodItemRow,
+  type FoodVenueRow,
   type VenueRow,
 } from "./supabase";
 
@@ -198,6 +204,16 @@ const foodVenuesFile = path.join(dataDir, "food-venues.json");
 const foodItemsFile = path.join(dataDir, "food-items.json");
 
 export async function getFoodVenues(): Promise<FoodVenue[]> {
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("food_venues")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) return (data as FoodVenueRow[]).map(foodVenueFromRow);
+    throw new Error(error?.message ?? "Could not load food venues");
+  }
+
   return readJson<FoodVenue[]>(foodVenuesFile, []);
 }
 
@@ -234,11 +250,33 @@ export async function getFoodVenuesNear(params: {
 }
 
 export async function getFoodVenueBySlug(slug: string): Promise<FoodVenue | null> {
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("food_venues")
+      .select("*")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (!error) return data ? foodVenueFromRow(data as FoodVenueRow) : null;
+    throw new Error(error.message);
+  }
+
   const venues = await getFoodVenues();
   return venues.find((v) => v.slug === slug) ?? null;
 }
 
 export async function addFoodVenue(venue: FoodVenue): Promise<FoodVenue> {
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("food_venues")
+      .upsert(foodVenueToRow(venue), { onConflict: "id" })
+      .select("*")
+      .single();
+
+    if (!error && data) return foodVenueFromRow(data as FoodVenueRow);
+    throw new Error(error?.message ?? "Could not save food venue");
+  }
+
   const venues = await getFoodVenues();
   const next = [venue, ...venues.filter((v) => v.id !== venue.id)];
   await writeJson(foodVenuesFile, next);
@@ -246,17 +284,64 @@ export async function addFoodVenue(venue: FoodVenue): Promise<FoodVenue> {
 }
 
 export async function getFoodItems(venueId?: string): Promise<FoodItem[]> {
+  if (hasSupabase && supabaseAdmin) {
+    let query = supabaseAdmin
+      .from("food_items")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (venueId) query = query.eq("venue_id", venueId);
+
+    const { data, error } = await query;
+    if (!error && data) return (data as FoodItemRow[]).map(foodItemFromRow);
+    throw new Error(error?.message ?? "Could not load food items");
+  }
+
   const all = await readJson<FoodItem[]>(foodItemsFile, []);
   return venueId ? all.filter((i) => i.venueId === venueId) : all;
 }
 
 export async function addFoodItem(item: FoodItem): Promise<FoodItem> {
+  if (hasSupabase && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("food_items")
+      .insert(foodItemToRow(item))
+      .select("*")
+      .single();
+
+    if (!error && data) return foodItemFromRow(data as FoodItemRow);
+    throw new Error(error?.message ?? "Could not save food item");
+  }
+
   const items = await getFoodItems();
   await writeJson(foodItemsFile, [item, ...items]);
   return item;
 }
 
 export async function updateFoodItem(id: string, venueId: string, updates: Partial<FoodItem>): Promise<FoodItem | null> {
+  if (hasSupabase && supabaseAdmin) {
+    const updateRow: Partial<FoodItemRow> = {};
+    if (updates.name !== undefined) updateRow.name = updates.name;
+    if (updates.description !== undefined) updateRow.description = updates.description;
+    if (updates.price !== undefined) updateRow.price = updates.price;
+    if (updates.category !== undefined) updateRow.category = updates.category;
+    if (updates.isDeal !== undefined) updateRow.is_deal = updates.isDeal;
+    if (updates.dealNote !== undefined) updateRow.deal_note = updates.dealNote;
+    if (updates.dealExpires !== undefined) updateRow.deal_expires = updates.dealExpires;
+    if (updates.isAvailable !== undefined) updateRow.is_available = updates.isAvailable;
+
+    const { data, error } = await supabaseAdmin
+      .from("food_items")
+      .update(updateRow)
+      .eq("id", id)
+      .eq("venue_id", venueId)
+      .select("*")
+      .maybeSingle();
+
+    if (!error) return data ? foodItemFromRow(data as FoodItemRow) : null;
+    throw new Error(error.message);
+  }
+
   const items = await getFoodItems();
   const existing = items.find((i) => i.id === id && i.venueId === venueId);
   if (!existing) return null;
@@ -266,6 +351,17 @@ export async function updateFoodItem(id: string, venueId: string, updates: Parti
 }
 
 export async function deleteFoodItem(id: string, venueId: string): Promise<boolean> {
+  if (hasSupabase && supabaseAdmin) {
+    const { error, count } = await supabaseAdmin
+      .from("food_items")
+      .delete({ count: "exact" })
+      .eq("id", id)
+      .eq("venue_id", venueId);
+
+    if (error) throw new Error(error.message);
+    return (count ?? 0) > 0;
+  }
+
   const items = await getFoodItems();
   const filtered = items.filter((i) => !(i.id === id && i.venueId === venueId));
   if (filtered.length === items.length) return false;
