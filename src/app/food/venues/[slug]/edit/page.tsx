@@ -2,7 +2,7 @@
 
 import { AlertTriangle, ArrowLeft, Camera, Check, ClipboardList, Download, FileSpreadsheet, Image as ImageIcon, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { FoodItem, FoodVenue } from "@/lib/data";
 import { money } from "@/lib/data";
@@ -18,6 +18,7 @@ const EMPTY_EDIT: EditingItem = { name: "", price: "", description: "", isDeal: 
 export default function EditVenuePage() {
   const { slug } = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get("token") ?? "";
   const isNew = searchParams.get("new") === "1";
 
@@ -241,12 +242,16 @@ export default function EditVenuePage() {
         if (res.ok) { const d = await res.json(); setItems((p) => [...p, d.item]); }
       }
       setBulkDone(true);
-      setPasteText("");
-      setPreview([]);
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      setCsvFile(null);
-      setTimeout(() => { setBulkDone(false); setMode("list"); }, 2500);
+      // Keep preview mounted so the success banner is visible, then navigate to the public listing
+      setTimeout(() => {
+        setPasteText("");
+        setPreview([]);
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        setCsvFile(null);
+        setBulkDone(false);
+        router.push("/food");
+      }, 2000);
     } finally { setBulkSaving(false); }
   }
 
