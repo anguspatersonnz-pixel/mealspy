@@ -464,7 +464,7 @@ export default function MealSpyApp() {
                         )}
                       </div>
                       <p className="mt-1 text-sm text-[#a09c98]">
-                        {catInfo?.emoji} {catInfo?.label}
+                        {catInfo?.label}
                         {(venue.suburb || venue.city) && <> · {venue.suburb || venue.city}</>}
                         {venue.distanceKm != null && <> · {venue.distanceKm} km</>}
                       </p>

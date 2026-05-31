@@ -103,7 +103,7 @@ export default function FoodMapPage() {
               <span className="text-xs font-semibold text-[#a09c98]">Type</span>
               <select value={category} onChange={(e) => setCategory(e.target.value as FoodCategory | "all")} className="control mt-1 w-full text-sm">
                 <option value="all">All types</option>
-                {FOOD_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>)}
+                {FOOD_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </label>
           </div>
@@ -115,7 +115,7 @@ export default function FoodMapPage() {
         <button onClick={() => setCategory("all")} className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${category === "all" ? "bg-[#e8472a] text-white" : "bg-[#faf9f7] text-[#6b6560]"}`}>All</button>
         {FOOD_CATEGORIES.map((c) => (
           <button key={c.value} onClick={() => setCategory(c.value)} className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${category === c.value ? "bg-[#e8472a] text-white" : "bg-[#faf9f7] text-[#6b6560]"}`}>
-            {c.emoji} {c.label}
+            {c.label}
           </button>
         ))}
       </div>

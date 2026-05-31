@@ -68,7 +68,7 @@ export default function ListYourPlace() {
                 <span className="text-sm font-black text-black/60">Type *</span>
                 <select name="category" required className="control mt-1 w-full">
                   {FOOD_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+                    <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
               </label>
