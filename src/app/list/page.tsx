@@ -215,7 +215,7 @@ export default function ListYourPlace() {
                 </label>
                 <label className="block">
                   <span className="label">Website</span>
-                  <input name="website" type="url" placeholder="https://yourcafe.co.nz" className="control mt-1.5" />
+                  <input name="website" type="text" placeholder="https://yourcafe.co.nz" className="control mt-1.5" />
                 </label>
               </div>
             </div>

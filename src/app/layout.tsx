@@ -43,10 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Prices submitted by venues. Always check before you go.
             </p>
             <p className="mt-1 text-xs text-[#a09c98]">
-              Inspired by but not affiliated with{" "}
-              <a href="https://gaspy.nz" target="_blank" rel="noopener noreferrer" className="hover:underline">
-                Gaspy
-              </a>.
+              Inspired by but not affiliated with Gaspy.
             </p>
           </div>
         </footer>
