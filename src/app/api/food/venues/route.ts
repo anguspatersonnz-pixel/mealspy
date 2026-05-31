@@ -79,6 +79,18 @@ export async function POST(request: NextRequest) {
       .replace(/^-|-$/g, "") +
     "-" + nanoid(5).toLowerCase();
 
+  const optionalText = (value: unknown) => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  };
+
+  const optionalWebsite = (value: unknown) => {
+    const trimmed = optionalText(value);
+    if (!trimmed) return null;
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  };
+
   const venue: FoodVenue = {
     id: nanoid(),
     name: name.trim(),
@@ -89,9 +101,9 @@ export async function POST(request: NextRequest) {
     city: city.trim(),
     lat: resolvedLat,
     lng: resolvedLng,
-    phone: phone?.trim() ?? null,
-    website: website?.trim() ?? null,
-    description: description?.trim() ?? null,
+    phone: optionalText(phone),
+    website: optionalWebsite(website),
+    description: optionalText(description),
     imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
     claimToken: nanoid(32),
     createdAt: new Date().toISOString(),

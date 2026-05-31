@@ -154,11 +154,11 @@ export default function ListYourPlace() {
               <div className="grid gap-3">
                 <label className="block">
                   <span className="text-sm font-black text-black/60">Phone</span>
-                  <input name="phone" type="tel" placeholder="09 123 4567" className="control mt-1 w-full" />
+                  <input name="phone" type="text" placeholder="09 123 4567" className="control mt-1 w-full" />
                 </label>
                 <label className="block">
                   <span className="text-sm font-black text-black/60">Website</span>
-                  <input name="website" type="url" placeholder="https://yourcafe.co.nz" className="control mt-1 w-full" />
+                  <input name="website" type="text" placeholder="yourcafe.co.nz" className="control mt-1 w-full" />
                 </label>
               </div>
             </div>
