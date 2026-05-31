@@ -243,78 +243,80 @@ export default function MealSpyApp() {
 
       {/* ── Header ── */}
       <header className="sticky top-0 z-40 bg-white border-b border-[#ece8e3]">
-        {/* Top bar — centred logo */}
-        <div className="relative flex h-14 items-center justify-center px-4">
-          <button onClick={locate} disabled={locating} className="absolute left-4 flex items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
-            <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-[#e8472a]" : ""}`} />
-            <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
-          </button>
-          <span className="text-lg font-black tracking-tight text-[#1a1714]">🍜 mealspy</span>
-          <div className="absolute right-4 flex items-center gap-2">
-            <Link href="/drinks" className="rounded-lg border border-[#ece8e3] px-2.5 py-1 text-xs font-bold text-[#245c3b]">🍺 yourbeer</Link>
-            <button onClick={() => setShowFilters((v) => !v)} className={`rounded-xl border p-2 ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
-              <SlidersHorizontal className="h-4 w-4" />
+        <div className="mx-auto w-full max-w-4xl px-4">
+          {/* Top bar — centred logo */}
+          <div className="relative flex h-14 items-center justify-center">
+            <button onClick={locate} disabled={locating} className="absolute left-0 flex items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
+              <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-[#e8472a]" : ""}`} />
+              <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
             </button>
+            <span className="text-lg font-black tracking-tight text-[#1a1714]">🍜 mealspy</span>
+            <div className="absolute right-0 flex items-center gap-2">
+              <Link href="/drinks" className="rounded-lg border border-[#ece8e3] px-2.5 py-1 text-xs font-bold text-[#245c3b]">🍺 yourbeer</Link>
+              <button onClick={() => setShowFilters((v) => !v)} className={`rounded-xl border p-2 ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Search bar */}
-        <div className="px-4 pb-2.5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c0bbb7]" />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search a place or suburb…"
-              className="h-10 w-full rounded-xl bg-[#f5f5f5] pl-9 pr-8 text-sm text-[#1a1714] outline-none placeholder:text-[#c0bbb7] focus:bg-white focus:ring-2 focus:ring-[#e8472a]/20 transition"
-            />
-            {query && <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c0bbb7]"><X className="h-4 w-4" /></button>}
+          {/* Search bar */}
+          <div className="pb-2.5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c0bbb7]" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search a place or suburb…"
+                className="h-10 w-full rounded-xl bg-[#f5f5f5] pl-9 pr-8 text-sm text-[#1a1714] outline-none placeholder:text-[#c0bbb7] focus:bg-white focus:ring-2 focus:ring-[#e8472a]/20 transition"
+              />
+              {query && <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c0bbb7]"><X className="h-4 w-4" /></button>}
+            </div>
           </div>
-        </div>
 
-        {/* Filter panel */}
-        {showFilters && (
-          <div className="border-t border-[#ece8e3] bg-white px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <label className="block">
-              <span className="text-xs font-semibold text-[#a09c98]">City</span>
-              <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">{regions.map((r) => <option key={r}>{r}</option>)}</select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-[#a09c98]">Budget</span>
-              <select value={priceCap} onChange={(e) => setPriceCap(e.target.value)} className="control mt-1 w-full text-sm">
-                <option value="all">Any price</option>
-                <option value="10">Under $10</option>
-                <option value="15">Under $15</option>
-                <option value="20">Under $20</option>
-                <option value="25">Under $25</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-[#a09c98]">Sort</span>
-              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} className="control mt-1 w-full text-sm">
-                <option value="smart">Best match</option>
-                <option value="deals">Deals first</option>
-                <option value="price">Cheapest first</option>
-                <option value="nearby">Nearest first</option>
-              </select>
-            </label>
+          {/* Filter panel */}
+          {showFilters && (
+            <div className="border-t border-[#ece8e3] -mx-4 px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <label className="block">
+                <span className="text-xs font-semibold text-[#a09c98]">City</span>
+                <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">{regions.map((r) => <option key={r}>{r}</option>)}</select>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold text-[#a09c98]">Budget</span>
+                <select value={priceCap} onChange={(e) => setPriceCap(e.target.value)} className="control mt-1 w-full text-sm">
+                  <option value="all">Any price</option>
+                  <option value="10">Under $10</option>
+                  <option value="15">Under $15</option>
+                  <option value="20">Under $20</option>
+                  <option value="25">Under $25</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold text-[#a09c98]">Sort</span>
+                <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} className="control mt-1 w-full text-sm">
+                  <option value="smart">Best match</option>
+                  <option value="deals">Deals first</option>
+                  <option value="price">Cheapest first</option>
+                  <option value="nearby">Nearest first</option>
+                </select>
+              </label>
+            </div>
+          )}
+
+          {/* Category chips */}
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2.5 pt-0 scrollbar-hide">
+            <button onClick={() => setCategory("all")} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === "all" ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>All</button>
+            {FOOD_CATEGORIES.map((c) => (
+              <button key={c.value} onClick={() => setCategory(c.value)} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === c.value ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>
+                {c.emoji} {c.label}
+              </button>
+            ))}
           </div>
-        )}
-
-        {/* Category chips */}
-        <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 pt-0 scrollbar-hide">
-          <button onClick={() => setCategory("all")} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === "all" ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>All</button>
-          {FOOD_CATEGORIES.map((c) => (
-            <button key={c.value} onClick={() => setCategory(c.value)} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === c.value ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>
-              {c.emoji} {c.label}
-            </button>
-          ))}
         </div>
       </header>
 
       {/* ── List ── */}
-      <main className="flex-1 px-3 py-3 space-y-2.5 max-w-2xl mx-auto w-full">
+      <main className="flex-1 px-3 py-3 space-y-2.5 mx-auto w-full max-w-4xl">
 
         {/* ── Cheapest near you ── */}
         <div className="rounded-2xl border border-[#ece8e3] bg-white overflow-hidden">
@@ -381,7 +383,7 @@ export default function MealSpyApp() {
         )}
 
         {/* Venue cards */}
-        <div className="grid gap-3 xl:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((venue) => {
             const catInfo = FOOD_CATEGORIES.find((c) => c.value === venue.category);
             const expanded = expandedId === venue.id;
