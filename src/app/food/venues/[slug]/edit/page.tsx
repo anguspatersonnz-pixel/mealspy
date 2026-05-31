@@ -19,6 +19,7 @@ export default function EditVenuePage() {
   const { slug } = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
+  const isNew = searchParams.get("new") === "1";
 
   const [venue, setVenue] = useState<FoodVenue | null>(null);
   const [items, setItems] = useState<FoodItem[]>([]);
@@ -64,6 +65,7 @@ export default function EditVenuePage() {
   const [delisting, setDelisting] = useState(false);
   const [delisted, setDelisted] = useState(false);
   const [showDelistConfirm, setShowDelistConfirm] = useState(false);
+  const [delistError, setDelistError] = useState("");
 
   useEffect(() => {
     if (!token) { setAuthError(true); setLoading(false); return; }
@@ -251,12 +253,21 @@ export default function EditVenuePage() {
   // ── Delist ────────────────────────────────────────────────────────────────
   async function delistVenue() {
     setDelisting(true);
+    setDelistError("");
     try {
       const res = await fetch(`/api/food/venues/${slug}/delist`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) { setDelisted(true); setShowDelistConfirm(false); }
+      if (res.ok) {
+        setDelisted(true);
+        setShowDelistConfirm(false);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setDelistError(d.error ?? `Error ${res.status} — check your edit link is correct.`);
+      }
+    } catch {
+      setDelistError("Network error — please try again.");
     } finally { setDelisting(false); }
   }
 
@@ -323,6 +334,19 @@ export default function EditVenuePage() {
       </header>
 
       <main className="mx-auto max-w-xl px-4 py-5 space-y-4">
+
+        {/* Welcome banner for fresh listings */}
+        {isNew && (
+          <div className="rounded-2xl border border-[#c8e6d4] bg-[#f0faf5] p-4 space-y-2">
+            <p className="text-sm font-bold text-[#1a6b3c]">🎉 You&apos;re live — now add your menu!</p>
+            <p className="text-xs text-[#1a6b3c]/80">Use any tab above to add items. Paste your menu, upload a CSV, take a photo, or add one by one.</p>
+            <div className="rounded-lg bg-white border border-[#c8e6d4] px-3 py-2 space-y-1">
+              <p className="text-[10px] font-bold text-[#a09c98] uppercase tracking-wide">Your edit link — bookmark this</p>
+              <p className="text-xs font-mono text-[#1a1714] break-all select-all">{typeof window !== "undefined" ? window.location.href.replace("&new=1", "") : ""}</p>
+            </div>
+          </div>
+        )}
+
 
         {/* ── Mode: Add one by one ── */}
         {mode === "list" && (
@@ -537,9 +561,10 @@ export default function EditVenuePage() {
             Delist
           </button>
         ) : (
-          <div className="rounded-2xl bg-white border border-red-200 shadow-xl p-4 space-y-3 max-w-[220px]">
+          <div className="rounded-2xl bg-white border border-red-200 shadow-xl p-4 space-y-3 max-w-[240px]">
             <p className="text-sm font-semibold text-[#1a1714]">Remove listing?</p>
             <p className="text-xs text-[#6b6560]">This will hide your venue from mealspy. You can contact us to reinstate it.</p>
+            {delistError && <p className="text-xs font-medium text-red-600 bg-red-50 rounded-lg px-2 py-1.5">{delistError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={delistVenue}
@@ -549,7 +574,7 @@ export default function EditVenuePage() {
                 {delisting ? "Removing…" : "Yes, remove"}
               </button>
               <button
-                onClick={() => setShowDelistConfirm(false)}
+                onClick={() => { setShowDelistConfirm(false); setDelistError(""); }}
                 className="flex-1 rounded-xl border border-[#ece8e3] py-2 text-xs font-semibold text-[#6b6560]"
               >
                 Cancel
