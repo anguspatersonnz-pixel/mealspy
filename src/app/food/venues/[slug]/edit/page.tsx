@@ -7,11 +7,11 @@ import { useEffect, useRef, useState } from "react";
 import type { FoodItem, FoodVenue } from "@/lib/data";
 import { money } from "@/lib/data";
 
-type EditingItem = { name: string; price: string; category: string; description: string; isDeal: boolean; dealNote: string };
+type EditingItem = { name: string; price: string; description: string; isDeal: boolean; dealNote: string };
 type PreviewItem = { name: string; price: number; category: string | null; description: string | null; isDeal: boolean; dealNote: string | null; selected: boolean };
 type Mode = "list" | "paste" | "photo";
 
-const EMPTY_EDIT: EditingItem = { name: "", price: "", category: "", description: "", isDeal: false, dealNote: "" };
+const EMPTY_EDIT: EditingItem = { name: "", price: "", description: "", isDeal: false, dealNote: "" };
 
 export default function EditVenuePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -63,7 +63,7 @@ export default function EditVenuePage() {
   // ── Single item helpers ───────────────────────────────────────────────────
   function startEdit(item: FoodItem) {
     setEditingId(item.id);
-    setEditDraft({ name: item.name, price: String(item.price), category: item.category ?? "", description: item.description ?? "", isDeal: item.isDeal, dealNote: item.dealNote ?? "" });
+    setEditDraft({ name: item.name, price: String(item.price), description: item.description ?? "", isDeal: item.isDeal, dealNote: item.dealNote ?? "" });
   }
 
   async function saveEdit(itemId: string) {
@@ -72,7 +72,7 @@ export default function EditVenuePage() {
       const res = await fetch(`/api/food/venues/${slug}/items`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id: itemId, name: editDraft.name.trim(), price: Number(editDraft.price), category: editDraft.category.trim() || null, description: editDraft.description.trim() || null, isDeal: editDraft.isDeal, dealNote: editDraft.dealNote.trim() || null }),
+        body: JSON.stringify({ id: itemId, name: editDraft.name.trim(), price: Number(editDraft.price), description: editDraft.description.trim() || null, isDeal: editDraft.isDeal, dealNote: editDraft.dealNote.trim() || null }),
       });
       if (res.ok) { const d = await res.json(); setItems((p) => p.map((i) => i.id === itemId ? d.item : i)); setEditingId(null); }
     } finally { setSaving(false); }
@@ -91,7 +91,7 @@ export default function EditVenuePage() {
       const res = await fetch(`/api/food/venues/${slug}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newItem.name.trim(), price: Number(newItem.price), category: newItem.category.trim() || null, description: newItem.description.trim() || null, isDeal: newItem.isDeal, dealNote: newItem.dealNote.trim() || null }),
+        body: JSON.stringify({ name: newItem.name.trim(), price: Number(newItem.price), description: newItem.description.trim() || null, isDeal: newItem.isDeal, dealNote: newItem.dealNote.trim() || null }),
       });
       if (res.ok) { const d = await res.json(); setItems((p) => [...p, d.item]); setNewItem(EMPTY_EDIT); setShowAdd(false); }
     } finally { setAddingItem(false); }
@@ -158,7 +158,7 @@ export default function EditVenuePage() {
         const res = await fetch(`/api/food/venues/${slug}/items`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ name: item.name, price: item.price, category: item.category, description: item.description, isDeal: item.isDeal, dealNote: item.dealNote }),
+          body: JSON.stringify({ name: item.name, price: item.price, description: item.description, isDeal: item.isDeal, dealNote: item.dealNote }),
         });
         if (res.ok) { const d = await res.json(); setItems((p) => [...p, d.item]); }
       }
@@ -382,15 +382,9 @@ function PreviewList({ preview, setPreview, onSave, saving, done }: {
                 className="w-20 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1.5 text-sm font-semibold text-[#1a6b3c] outline-none focus:border-[#e8472a] focus:bg-white disabled:cursor-default"
               />
             </div>
-            {/* Category + description */}
+            {/* Description + deal */}
             {item.selected && (
               <div className="flex gap-2 pl-6">
-                <input
-                  value={item.category ?? ""}
-                  onChange={(e) => update(i, { category: e.target.value || null })}
-                  placeholder="Category"
-                  className="w-28 rounded-lg border border-[#ece8e3] bg-[#faf9f7] px-2.5 py-1 text-xs text-[#6b6560] outline-none focus:border-[#e8472a] focus:bg-white"
-                />
                 <input
                   value={item.description ?? ""}
                   onChange={(e) => update(i, { description: e.target.value || null })}
@@ -428,10 +422,7 @@ function ItemFields({ draft, setDraft }: { draft: EditingItem; setDraft: (d: Edi
   return (
     <div className="space-y-2">
       <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Item name *" className="control" />
-      <div className="grid grid-cols-2 gap-2">
-        <input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} type="number" min="0" step="0.5" placeholder="Price $ *" className="control" />
-        <input value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} placeholder="Category" className="control" />
-      </div>
+      <input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} type="number" min="0" step="0.5" placeholder="Price $ *" className="control" />
       <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Description (optional)" className="control" />
       <label className="flex items-center gap-2 text-sm font-medium text-[#1a1714]">
         <input type="checkbox" checked={draft.isDeal} onChange={(e) => setDraft({ ...draft, isDeal: e.target.checked })} className="h-4 w-4 rounded accent-[#e8472a]" />
@@ -469,7 +460,6 @@ function ItemRow({ item, isEditing, draft, setDraft, onEdit, onSave, onCancel, o
         <p className="text-sm font-medium text-[#1a1714]">{item.name}</p>
         {item.dealNote && <p className="text-xs font-medium text-[#e8472a] mt-0.5">{item.dealNote}</p>}
         {item.description && <p className="text-xs text-[#a09c98] mt-0.5">{item.description}</p>}
-        {item.category && <p className="text-xs text-[#a09c98]">{item.category}</p>}
       </div>
       <p className="flex-shrink-0 text-sm font-semibold text-[#1a6b3c]">{money(item.price)}</p>
       <div className="flex items-center gap-1 flex-shrink-0">
