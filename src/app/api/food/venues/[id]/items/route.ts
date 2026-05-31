@@ -11,7 +11,8 @@ async function resolveVenue(id: string) {
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const items = await getFoodItems(id);
+  const venue = await resolveVenue(id);
+  const items = venue ? await getFoodItems(venue.id) : [];
   return NextResponse.json({ items });
 }
 

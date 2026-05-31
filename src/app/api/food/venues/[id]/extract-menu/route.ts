@@ -33,8 +33,9 @@ const TAB_RE = /^(.+?)\t\$?\s*(\d{1,3}(?:[.,]\d{1,2})?)[\s]*$/;
 const SLASH_PRICE_RE = /\$?\s*(\d{1,3}(?:[.,]\d{1,2})?)\s*\/\s*\$?\s*\d/;
 // Deal/special keywords
 const DEAL_WORDS = /\b(special|deal|offer|happy hour|lunch deal|lunch special|early bird|promo|discount|today only|limited|value|combo)\b/i;
-// Headings: all-caps, ends with colon, section markers like "--- BURGERS ---", "* Drinks *"
-const HEADING_RE = /^[-–—*•=\s]*([A-Z][A-Za-z &'/()\\-]{1,40}|[A-Z\s&]{3,40})[-–—*•=\s]*:?\s*$/;
+// Headings: decorated section markers only — "--- BURGERS ---", "* Drinks *", "=== MAINS ==="
+// Plain title-case lines are NOT headings (they're more likely item names)
+const HEADING_RE = /^[-–—*•=]{1,}\s*[A-Za-z][A-Za-z\s&'/()-]{1,40}\s*[-–—*•=]{1,}:?\s*$/;
 // Dietary/allergen tags inline
 const DIETARY_RE = /\s*[\[(]?\s*\b(v|vg|vegan|vegetarian|gf|gluten[\s-]?free|df|dairy[\s-]?free|nf|nut[\s-]?free|pb|plant[\s-]?based|spicy|hot|🌶|⭐)\b\s*[)\]]?/gi;
 // Lines to skip entirely
@@ -141,8 +142,10 @@ function parseWithRegex(text: string): MenuItem[] {
     }
 
     // ── Price on next line (name\n$price) ──────────────────────────────────
+    // If the next line is a standalone price, the current line must be an item name —
+    // never treat it as a heading regardless of capitalisation.
     const nextTrimmed = lines[i + 1]?.trim();
-    if (nextTrimmed && !extractEndPrice(trimmed) && !isHeading(trimmed) && trimmed.length >= 2 && trimmed.length < 80) {
+    if (nextTrimmed && !extractEndPrice(trimmed) && trimmed.length >= 2 && trimmed.length < 80) {
       const nextPriceMatch = nextTrimmed.match(/^\$?\s*(\d{1,3}(?:[.,]\d{1,2})?)\s*$/);
       if (nextPriceMatch) {
         const price = parsePrice(nextPriceMatch[1]);

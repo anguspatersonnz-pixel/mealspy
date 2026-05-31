@@ -4,6 +4,12 @@ import { addFoodVenue, findDuplicateFoodVenue, getFoodVenueBySlug, getFoodVenues
 import { regionCentres } from "@/lib/data";
 import type { FoodVenue, OpeningHours } from "@/lib/data";
 
+function stripToken(venue: FoodVenue): Omit<FoodVenue, "claimToken"> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { claimToken: _ct, ...pub } = venue;
+  return pub;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
@@ -11,7 +17,7 @@ export async function GET(request: NextRequest) {
   if (slug) {
     const venue = await getFoodVenueBySlug(slug);
     if (!venue) return NextResponse.json({ venues: [], count: 0 });
-    return NextResponse.json({ venues: [venue], count: 1 });
+    return NextResponse.json({ venues: [stripToken(venue)], count: 1 });
   }
 
   const fallbackRegion = searchParams.get("region") ?? "Auckland";
@@ -26,7 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   const venues = await getFoodVenuesNear({ lat, lng, radiusKm, category });
-  return NextResponse.json({ venues, count: venues.length });
+  return NextResponse.json({ venues: venues.map(stripToken), count: venues.length });
 }
 
 async function geocode(address: string, suburb: string, city: string): Promise<{ lat: number; lng: number } | null> {
@@ -115,7 +121,7 @@ export async function POST(request: NextRequest) {
     imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
     claimToken: nanoid(32),
     createdAt: new Date().toISOString(),
-    approved: false,
+    approved: true,
     menuStatus: "none",
     openingHours: openingHours as OpeningHours ?? null,
   };
