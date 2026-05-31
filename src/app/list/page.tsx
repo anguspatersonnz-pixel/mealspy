@@ -117,7 +117,7 @@ export default function ListYourPlace() {
 
   function copyToken() {
     if (!venue) return;
-    navigator.clipboard.writeText(venue.claim_token);
+    navigator.clipboard.writeText(`${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -288,19 +288,21 @@ export default function ListYourPlace() {
               <p className="mt-0.5 text-sm text-[#1a6b3c]/70">Upload your menu and we&apos;ll add it for you.</p>
             </div>
 
-            {/* Claim token */}
-            <div className="card p-4">
-              <p className="label mb-2">Your edit token — save this</p>
+            {/* Management link */}
+            <div className="card p-4 border-[#fad5ce] bg-[#fff8f6]">
+              <p className="text-sm font-semibold text-[#c73d22] mb-1">⚠️ Save your management link</p>
+              <p className="text-xs text-[#6b6560] mb-3">This is the only way to edit your menu and prices. Bookmark it or copy it somewhere safe.</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 overflow-hidden rounded-lg bg-[#faf9f7] px-3 py-2.5 text-xs font-mono text-[#6b6560] break-all">{venue.claim_token}</code>
+                <code className="flex-1 overflow-hidden rounded-lg bg-white border border-[#fad5ce] px-3 py-2 text-[11px] font-mono text-[#6b6560] break-all">
+                  {typeof window !== "undefined" ? `${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}` : `/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
+                </code>
                 <button
                   onClick={copyToken}
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-[#ece8e3] bg-white text-[#6b6560] transition hover:text-[#e8472a]"
+                  className="flex-shrink-0 rounded-lg border border-[#fad5ce] bg-white px-3 py-2 text-xs font-semibold text-[#e8472a]"
                 >
-                  {copied ? <CheckCircle className="h-4 w-4 text-[#1a6b3c]" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-[#a09c98]">You need this to edit your products and prices later.</p>
             </div>
 
             {/* Menu upload */}

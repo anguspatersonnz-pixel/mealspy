@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFoodVenueBySlug, getFoodVenues, saveMenuUpload, updateFoodVenue } from "@/lib/storage";
+import { getFoodVenueBySlug, getFoodVenues, updateFoodVenue } from "@/lib/storage";
 
 async function resolveVenue(id: string) {
   const venues = await getFoodVenues();
@@ -27,8 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "File too large (max 20 MB)" }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await saveMenuUpload(venue.id, file.name, buffer);
+  // Mark menu as pending — owner can use the edit page to add items via AI photo extraction
   await updateFoodVenue(venue.id, { menuStatus: "pending" });
 
   return NextResponse.json({ ok: true });
