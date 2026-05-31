@@ -1,6 +1,6 @@
 "use client";
 
-import { Beer, ChevronDown, ChevronUp, LocateFixed, MapPin, Plus, Search, SlidersHorizontal, Tag, X } from "lucide-react";
+import { Beer, ChevronDown, ChevronUp, LocateFixed, MapPin, Plus, Search, SlidersHorizontal, Tag, User, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FOOD_CATEGORIES, money, regionCentres, regions } from "@/lib/data";
@@ -119,6 +119,13 @@ export default function MealSpyApp() {
                 title="Switch to yourbeer"
               >
                 <Beer className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/account"
+                className="rounded-lg border border-[#ece8e3] bg-white p-2 text-[#6b6560] transition hover:border-[#e8472a] hover:text-[#e8472a]"
+                title="Account"
+              >
+                <User className="h-4 w-4" />
               </Link>
             </div>
           </div>
