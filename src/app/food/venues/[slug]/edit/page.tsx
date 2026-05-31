@@ -242,16 +242,6 @@ export default function EditVenuePage() {
         if (res.ok) { const d = await res.json(); setItems((p) => [...p, d.item]); }
       }
       setBulkDone(true);
-      // Keep preview mounted so the success banner is visible, then navigate to the public listing
-      setTimeout(() => {
-        setPasteText("");
-        setPreview([]);
-        setPhotoFile(null);
-        setPhotoPreview(null);
-        setCsvFile(null);
-        setBulkDone(false);
-        router.push("/food");
-      }, 2000);
     } finally { setBulkSaving(false); }
   }
 
@@ -430,7 +420,7 @@ export default function EditVenuePage() {
               </button>
             </div>
             {extractError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{extractError}</p>}
-            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
+            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} slug={slug} />}
           </div>
         )}
 
@@ -471,7 +461,7 @@ export default function EditVenuePage() {
               </button>
             </div>
             {csvError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{csvError}</p>}
-            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
+            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} slug={slug} />}
           </div>
         )}
 
@@ -502,7 +492,7 @@ export default function EditVenuePage() {
               </button>
             </div>
             {extractError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{extractError}</p>}
-            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
+            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} slug={slug} />}
           </div>
         )}
 
@@ -592,13 +582,14 @@ export default function EditVenuePage() {
   );
 }
 
-function PreviewList({ preview, setPreview, onSave, saving, done, extractMethod }: {
+function PreviewList({ preview, setPreview, onSave, saving, done, extractMethod, slug }: {
   preview: PreviewItem[];
   setPreview: React.Dispatch<React.SetStateAction<PreviewItem[]>>;
   onSave: () => void;
   saving: boolean;
   done: boolean;
   extractMethod: string | null;
+  slug: string;
 }) {
   const selectedCount = preview.filter((i) => i.selected).length;
 
@@ -678,8 +669,13 @@ function PreviewList({ preview, setPreview, onSave, saving, done, extractMethod 
       </div>
       <div className="px-4 py-3 border-t border-[#ece8e3]">
         {done ? (
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-[#f0faf4] py-3 text-sm font-bold text-[#1a6b3c]">
-            <Check className="h-4 w-4" /> Menu uploaded successfully!
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2 rounded-2xl bg-[#f0faf4] py-3 text-sm font-bold text-[#1a6b3c]">
+              <Check className="h-4 w-4" /> Menu uploaded successfully!
+            </div>
+            <Link href="/food" className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-[#ece8e3] py-2.5 text-sm font-semibold text-[#1a1714] hover:bg-[#faf9f7] transition">
+              View on mealspy →
+            </Link>
           </div>
         ) : (
           <button

@@ -266,6 +266,6 @@ export function foodItemToRow(item: FoodItem): Omit<FoodItemRow, "created_at"> &
     deal_expires: item.dealExpires,
     is_available: item.isAvailable,
     created_at: item.createdAt,
-    image_url: item.imageUrl ?? null,
+    ...(item.imageUrl != null ? { image_url: item.imageUrl } : {}),
   };
 }
