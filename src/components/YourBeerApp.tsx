@@ -2,632 +2,359 @@
 
 import {
   Beer,
-  Bell,
   Building2,
   LocateFixed,
   MapPinned,
-  Menu,
+  Navigation,
   Search,
   SlidersHorizontal,
   Store,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Listing, ListingType, money, regionCentres, regions, styles, type Venue } from "@/lib/data";
 
 type Tab = ListingType;
 type SortMode = "price" | "distance" | "fresh";
-type Panel = "filters" | "post" | "menu" | null;
-type MenuAction = Tab | "map" | "post";
 
-const tabs: Array<{ label: string; type: Tab; icon: React.ReactNode }> = [
-  { label: "Bottle shops", type: "store", icon: <Store className="h-4 w-4" /> },
-  { label: "Pubs", type: "bar", icon: <Beer className="h-4 w-4" /> },
-  { label: "Local makers", type: "maker", icon: <Building2 className="h-4 w-4" /> },
+const tabs: Array<{ label: string; type: Tab; emoji: string }> = [
+  { label: "Bottle shops", type: "store", emoji: "🏪" },
+  { label: "Pubs", type: "bar", emoji: "🍺" },
+  { label: "Makers", type: "maker", emoji: "🏭" },
 ];
 
 export default function YourBeerApp() {
   const [tab, setTab] = useState<Tab>("store");
-  const [panel, setPanel] = useState<Panel>(null);
   const [region, setRegion] = useState("Auckland");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(regionCentres.Auckland);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState(5);
   const [style, setStyle] = useState("all");
   const [sort, setSort] = useState<SortMode>("distance");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Listing[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [notice, setNotice] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [askedForLocation, setAskedForLocation] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationAsked, setLocationAsked] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showPost, setShowPost] = useState(false);
+  const [postNotice, setPostNotice] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (askedForLocation) return;
-    setAskedForLocation(true);
-    locate();
-  }, [askedForLocation]);
-
-  useEffect(() => {
-    if (!coords) {
-      setResults([]);
-      setVenues([]);
-      setLoading(false);
-      return;
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then((r) => {
+        if (r.state === "granted") locate();
+      });
     }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const params = new URLSearchParams({
-      region,
-      lat: String(coords.lat),
-      lng: String(coords.lng),
-      radiusKm: String(radius),
-      type: tab,
-      style,
-      openTonight: "true",
-    });
-
+  useEffect(() => {
+    if (!coords) return;
     setLoading(true);
-    fetch(`/api/nearby?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => setResults(Array.isArray(data.listings) ? data.listings : []))
-      .catch(() => setResults([]))
-      .finally(() => setLoading(false));
-
-    fetch(`/api/venues?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => setVenues(Array.isArray(data.venues) ? data.venues : []))
-      .catch(() => setVenues([]));
+    const params = new URLSearchParams({
+      region, lat: String(coords.lat), lng: String(coords.lng),
+      radiusKm: String(radius), type: tab, style, openTonight: "true",
+    });
+    Promise.all([
+      fetch(`/api/nearby?${params}`).then((r) => r.json()).catch(() => ({ listings: [] })),
+      fetch(`/api/venues?${params}`).then((r) => r.json()).catch(() => ({ venues: [] })),
+    ]).then(([listData, venueData]) => {
+      setResults(Array.isArray(listData.listings) ? listData.listings : []);
+      setVenues(Array.isArray(venueData.venues) ? venueData.venues : []);
+    }).finally(() => setLoading(false));
   }, [coords, radius, region, style, tab]);
 
-  const searchedResults = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    if (!search) return results;
-
-    return results.filter((listing) =>
-      [listing.product, listing.venue, listing.suburb, listing.special, listing.style]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(search)),
-    );
-  }, [query, results]);
-
-  const sorted = useMemo(() => {
-    return [...searchedResults].sort((a, b) => {
-      if (sort === "distance") return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
-      if (sort === "fresh") return a.updatedMinutesAgo - b.updatedMinutesAgo;
-      return a.price - b.price;
-    });
-  }, [searchedResults, sort]);
-
-  const nearbyPlaces = useMemo(() => {
-    const priced = sorted.map((listing) => ({
-      id: listing.id,
-      type: listing.type,
-      venue: listing.venue,
-      product: listing.product,
-      price: listing.price,
-      unit: listing.unit,
-      lat: listing.lat,
-      lng: listing.lng,
-      suburb: listing.suburb,
-      distanceKm: listing.distanceKm,
-      hasPrice: true,
-    }));
-
-    const pricedNames = new Set(priced.map((listing) => `${listing.venue}-${listing.suburb}`.toLowerCase()));
-    const search = query.trim().toLowerCase();
-    const unpriced = venues
-      .filter((venue) => !pricedNames.has(`${venue.name}-${venue.suburb}`.toLowerCase()))
-      .filter((venue) => {
-        if (!search) return true;
-        return [venue.name, venue.suburb, venue.type].some((value) => String(value).toLowerCase().includes(search));
-      })
-      .map((venue) => ({
-        id: venue.id,
-        type: venue.type,
-        venue: venue.name,
-        lat: venue.lat,
-        lng: venue.lng,
-        suburb: venue.suburb,
-        distanceKm: venue.distanceKm,
-        hasPrice: false,
-      }));
-
-    return [...priced, ...unpriced];
-  }, [query, sorted, venues]);
-
-  const best = sorted[0];
-  const activeListing = sorted.find((listing) => listing.id === activeId) ?? best;
-  const activePlace = nearbyPlaces.find((place) => place.id === activeId) ?? nearbyPlaces[0];
-
-  function chooseRegion(nextRegion: string) {
-    setRegion(nextRegion);
-    setCoords(regionCentres[nextRegion] ?? regionCentres.Wellington);
-  }
-
   function locate() {
-    if (!navigator.geolocation) {
-      setCoords(regionCentres.Wellington);
-      setRegion("Wellington");
-      setNotice("Location unavailable. Showing Wellington.");
-      return;
-    }
-
-    setNotice("Finding you...");
+    setLocationAsked(true);
+    if (!navigator.geolocation) { chooseRegion("Auckland"); return; }
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        setRegion("Near me");
-        setTab("store");
-        setSort("distance");
-        setNotice("Showing the nearest bottle shops first.");
-      },
-      () => {
-        setCoords(regionCentres.Wellington);
-        setRegion("Wellington");
-        setNotice("Location blocked. Showing Wellington.");
-      },
+      (pos) => { setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setRegion("Near me"); setLocating(false); },
+      () => { chooseRegion("Auckland"); setLocating(false); },
       { enableHighAccuracy: true, timeout: 6000 },
     );
   }
 
-  function chooseMenuAction(action: MenuAction) {
-    if (action === "map") {
-      window.location.href = "/map";
-      return;
-    }
-    if (action === "post") {
-      setPanel(action);
-      return;
-    }
-    setTab(action);
-    if (action === "store") setSort("distance");
-    setPanel(null);
+  function chooseRegion(r: string) {
+    setRegion(r);
+    setCoords(regionCentres[r] ?? regionCentres.Auckland);
   }
 
-  async function submitApplication(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: form.get("applicationType"),
-        businessName: form.get("businessName"),
-        contactEmail: form.get("contactEmail"),
-        licence: form.get("licence"),
-        region,
-      }),
+  const sorted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const searched = !q ? results : results.filter((l) =>
+      [l.product, l.venue, l.suburb, l.special, l.style].some((f) => f?.toLowerCase().includes(q))
+    );
+    return [...searched].sort((a, b) => {
+      if (sort === "distance") return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
+      if (sort === "fresh") return a.updatedMinutesAgo - b.updatedMinutesAgo;
+      return a.price - b.price;
     });
-    const data = await response.json();
-    setNotice(response.ok ? "Application received." : data.error);
-    if (response.ok) event.currentTarget.reset();
-  }
+  }, [query, results, sort]);
+
+  const unpricedVenues = useMemo(() => {
+    const pricedNames = new Set(sorted.map((l) => `${l.venue}-${l.suburb}`.toLowerCase()));
+    const q = query.trim().toLowerCase();
+    return venues
+      .filter((v) => !pricedNames.has(`${v.name}-${v.suburb}`.toLowerCase()))
+      .filter((v) => !q || [v.name, v.suburb, v.type].some((f) => f?.toLowerCase().includes(q)));
+  }, [query, sorted, venues]);
 
   async function submitListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const listingRegion = String(form.get("region") ?? region);
-    const fallback = regionCentres[listingRegion] ?? coords ?? regionCentres.Wellington;
-    const lat = Number(form.get("lat") || fallback.lat);
-    const lng = Number(form.get("lng") || fallback.lng);
-    const response = await fetch("/api/listings", {
+    const fallback = regionCentres[listingRegion] ?? coords ?? regionCentres.Auckland;
+    const res = await fetch("/api/listings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type: form.get("type"),
-        venue: form.get("venue"),
-        product: form.get("product"),
-        style: form.get("style"),
-        price: form.get("price"),
-        unit: form.get("unit"),
-        suburb: form.get("suburb"),
-        special: form.get("special"),
-        region: listingRegion,
-        lat,
-        lng,
+        type: form.get("type"), venue: form.get("venue"), product: form.get("product"),
+        style: form.get("style"), price: form.get("price"), unit: form.get("unit"),
+        suburb: form.get("suburb"), special: form.get("special"), region: listingRegion,
+        lat: Number(form.get("lat") || fallback.lat), lng: Number(form.get("lng") || fallback.lng),
         openTonight: true,
       }),
     });
-    const data = await response.json();
-    setNotice(response.ok ? "Price saved." : data.error);
-    if (response.ok) {
-      event.currentTarget.reset();
-      setResults((current) => [data.listing, ...current]);
-      setActiveId(data.listing.id);
-    }
+    const data = await res.json();
+    setPostNotice(res.ok ? "Price saved!" : data.error);
+    if (res.ok) { event.currentTarget.reset(); setResults((c) => [data.listing, ...c]); }
+  }
+
+  // Location splash
+  if (!locationAsked && !coords) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white px-6 text-center">
+        <span className="text-6xl">🍺</span>
+        <div>
+          <h1 className="text-3xl font-black text-[#1a1714]">yourbeer</h1>
+          <p className="mt-2 text-sm text-[#a09c98]">Cheap beer and deals near you</p>
+        </div>
+        <div className="w-full max-w-xs space-y-2.5">
+          <button onClick={locate} className="w-full rounded-2xl bg-[#245c3b] py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2">
+            <LocateFixed className="h-4 w-4" /> Use my location
+          </button>
+          <button onClick={() => { setLocationAsked(true); chooseRegion("Auckland"); }} className="w-full rounded-2xl border border-[#ece8e3] py-3.5 text-sm font-semibold text-[#6b6560]">
+            Pick a city instead
+          </button>
+        </div>
+        <p className="text-xs text-[#c0bbb7]">Location never stored or shared</p>
+      </div>
+    );
   }
 
   return (
-    <div className="grid h-dvh grid-rows-[auto_1fr] overflow-hidden bg-[#f7efe0] text-[#1f1b16]">
-      <div className="border-b border-[#2f2417]/10 bg-[#f2c35d] shadow-sm">
-        <header className="hidden min-h-[86px] items-center justify-between px-5 md:flex">
-        <div className="flex items-center gap-3 min-w-0">
-          <a href="/" className="flex items-center gap-1.5 rounded-md border-2 border-[#2f2417] bg-[#fff7df] px-3 py-1.5 text-sm font-black shadow-[3px_3px_0_#2f2417] text-[#245c3b]" title="Switch to mealspy">
-            🍜 <span>mealspy</span>
-          </a>
-          <a href="#top" className="flex min-w-0 items-center gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-3xl shadow-[4px_4px_0_#2f2417]">
-              🍺
-            </span>
-            <span className="min-w-0">
-              <span className="block text-2xl font-black leading-none tracking-normal sm:text-3xl">yourbeer</span>
-            </span>
-          </a>
+    <div className="flex min-h-dvh flex-col bg-[#f5f5f5] pb-20">
+
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-40 bg-white border-b border-[#ece8e3]">
+        <div className="relative flex h-14 items-center justify-center px-4">
+          <button onClick={locate} disabled={locating} className="absolute left-4 flex items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
+            <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-[#245c3b]" : ""}`} />
+            <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
+          </button>
+          <span className="text-lg font-black tracking-tight text-[#1a1714]">🍺 yourbeer</span>
+          <button onClick={() => setShowFilters((v) => !v)} className={`absolute right-4 rounded-xl border p-2 ${showFilters ? "border-[#245c3b] bg-[#f0faf4] text-[#245c3b]" : "border-[#ece8e3] text-[#6b6560]"}`}>
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setPanel("menu")}
-          className="grid h-11 w-11 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] shadow-[3px_3px_0_#2f2417]"
-          aria-label="Menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+
+        {/* Search */}
+        <div className="px-4 pb-2.5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c0bbb7]" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search beer, store, or suburb…"
+              className="h-10 w-full rounded-xl bg-[#f5f5f5] pl-9 pr-8 text-sm text-[#1a1714] outline-none placeholder:text-[#c0bbb7] focus:bg-white focus:ring-2 focus:ring-[#245c3b]/20 transition"
+            />
+            {query && <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c0bbb7]"><X className="h-4 w-4" /></button>}
+          </div>
+        </div>
+
+        {/* Filter panel */}
+        {showFilters && (
+          <div className="border-t border-[#ece8e3] bg-white px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">City</span>
+              <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">{regions.map((r) => <option key={r}>{r}</option>)}</select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">Radius — {radius} km</span>
+              <input type="range" min={1} max={20} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="mt-3 w-full accent-[#245c3b]" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">Style</span>
+              <select value={style} onChange={(e) => setStyle(e.target.value)} className="control mt-1 w-full text-sm">
+                <option value="all">Any style</option>
+                {styles.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">Sort</span>
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} className="control mt-1 w-full text-sm">
+                <option value="distance">Nearest first</option>
+                <option value="price">Cheapest first</option>
+                <option value="fresh">Newest first</option>
+              </select>
+            </label>
+          </div>
+        )}
+
+        {/* Tab chips */}
+        <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 pt-0 scrollbar-hide">
+          {tabs.map((t) => (
+            <button key={t.type} onClick={() => setTab(t.type)} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${tab === t.type ? "bg-[#245c3b] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>
+              {t.emoji} {t.label}
+            </button>
+          ))}
+        </div>
       </header>
 
-        <div className="grid grid-cols-[1fr_auto_auto] gap-2 bg-[#fff8e8] p-2 md:grid-cols-[1fr_auto] md:px-5">
-          <label className="relative block min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search beer, store, or suburb"
-              className="h-12 w-full rounded-md border-2 border-[#2f2417]/10 bg-white pl-10 pr-3 text-base font-bold outline-none ring-[#245c3b] transition placeholder:text-black/35 focus:ring-2"
-            />
-          </label>
-          <button
-            type="button"
-            className="grid h-12 w-12 place-items-center rounded-md border-2 border-[#2f2417]/10 bg-white text-[#245c3b]"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setPanel("menu")}
-            className="grid h-12 w-12 place-items-center rounded-md border-2 border-[#2f2417]/10 bg-white text-[#245c3b] md:hidden"
-            aria-label="Menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
+      {/* ── List ── */}
+      <main className="flex-1 px-3 py-3 space-y-2.5 max-w-2xl mx-auto w-full">
+
+        {/* Status row */}
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-[#a09c98]">
+            {loading ? "Finding places…" : `${sorted.length + unpricedVenues.length} place${sorted.length + unpricedVenues.length !== 1 ? "s" : ""} within ${radius} km`}
+          </p>
+          {sorted.length > 0 && !loading && (
+            <span className="text-xs font-semibold text-[#245c3b]">🍺 from {money(sorted[0].price)}</span>
+          )}
         </div>
-      </div>
 
-      <main id="top" className="grid min-h-0 grid-rows-[auto_1fr] gap-2 overflow-hidden p-2 lg:grid-cols-[320px_1fr] lg:grid-rows-1 lg:p-4">
-        <aside className="hidden rounded-md border-2 border-[#2f2417]/10 bg-[#fffaf0] p-4 shadow-sm lg:block">
-          <Controls
-            region={region}
-            chooseRegion={chooseRegion}
-            locate={locate}
-            radius={radius}
-            setRadius={setRadius}
-            style={style}
-            setStyle={setStyle}
-            sort={sort}
-            setSort={setSort}
-            notice={notice}
-          />
-        </aside>
-
-        <section className="min-h-0 overflow-hidden rounded-md border-2 border-[#2f2417]/10 bg-[#fffaf0] shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#2f2417]/10 bg-white/55 px-3 py-2">
-            <div>
-              <h1 className="text-lg font-black">{tabs.find((item) => item.type === tab)?.label}</h1>
-              <p className="text-xs font-bold text-black/45">
-                {loading ? "Loading" : `${nearbyPlaces.length} nearby`} {best ? `· nearest ${(best.distanceKm ?? 0).toFixed(1)} km` : ""}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setPanel("filters")} className="button bg-white text-[#245c3b] ring-1 ring-black/10 lg:hidden">
-                <SlidersHorizontal className="h-4 w-4" />
-              </button>
-              <button onClick={() => setPanel("post")} className="button bg-[#245c3b] text-white">
-                Post
-              </button>
+        {/* Empty state */}
+        {!loading && coords !== null && sorted.length === 0 && unpricedVenues.length === 0 && (
+          <div className="rounded-2xl bg-white px-6 py-12 text-center shadow-sm">
+            <p className="text-4xl mb-3">🍺</p>
+            <p className="font-semibold text-[#1a1714]">Nothing within {radius} km</p>
+            <p className="mt-1 text-sm text-[#a09c98]">Try a wider radius or post a price.</p>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              {radius < 20 && <button onClick={() => setRadius(Math.min(radius + 5, 20))} className="rounded-2xl bg-[#245c3b] px-5 py-2.5 text-sm font-bold text-white">Expand to {Math.min(radius + 5, 20)} km</button>}
+              <button onClick={() => setShowPost(true)} className="text-sm font-semibold text-[#245c3b] underline">Post a price</button>
             </div>
           </div>
+        )}
 
-          <div className="h-[calc(100%-57px)] min-h-0 overflow-auto p-2">
-            {!coords ? (
-              <div className="mb-2 grid min-h-[220px] place-items-center rounded-lg bg-[#e8ecd8] p-6 text-center">
-                <div>
-                  <p className="text-2xl font-black">Find nearby names</p>
-                  <p className="mt-2 text-sm font-bold text-black/55">Tap Near me or choose a city to show real stores and pubs.</p>
-                  <button onClick={locate} className="button mt-4 bg-[#245c3b] text-white">
-                    <LocateFixed className="h-4 w-4" />
-                    Near me
-                  </button>
+        {/* Priced listings */}
+        <div className="grid gap-3">
+          {sorted.map((listing) => (
+            <article key={listing.id} className="rounded-2xl bg-white shadow-sm overflow-hidden">
+              <div className="px-4 py-4 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base font-semibold text-[#1a1714] leading-snug">{listing.product}</h2>
+                  <p className="mt-1 text-sm text-[#a09c98]">
+                    {listing.venue}
+                    {listing.distanceKm != null && <> · {listing.distanceKm.toFixed(1)} km</>}
+                  </p>
+                  {listing.special && <p className="mt-1 text-xs font-medium text-[#245c3b]">{listing.special}</p>}
+                  <p className="mt-0.5 text-xs text-[#c0bbb7]">{listing.style} · {listing.unit}</p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-xl font-bold text-[#245c3b]">{money(listing.price)}</p>
+                  <p className="text-[11px] text-[#a09c98]">{listing.unit}</p>
                 </div>
               </div>
-            ) : (
-              <div className="mb-2 grid gap-2 rounded-lg bg-[#edf7ef] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div>
-                  <p className="text-sm font-black text-[#245c3b]">Nearby venue names</p>
-                  <p className="text-xs font-bold text-black/55">
-                    {loading ? "Checking prices and venue data" : `${nearbyPlaces.length} places within ${radius} km`}
+              {listing.suburb && (
+                <div className="flex items-center gap-2 border-t border-[#f3efeb] px-4 py-2">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.venue} ${listing.suburb}`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#faf9f7] px-2.5 py-1.5 text-xs font-semibold text-[#6b6560]"
+                  >
+                    <Navigation className="h-3.5 w-3.5" /> Directions
+                  </a>
+                  <span className="text-xs text-[#c0bbb7]">{listing.suburb}</span>
+                </div>
+              )}
+            </article>
+          ))}
+
+          {/* Venues without prices */}
+          {unpricedVenues.map((venue) => (
+            <article key={venue.id} className="rounded-2xl bg-white shadow-sm overflow-hidden opacity-75">
+              <div className="px-4 py-4 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base font-semibold text-[#1a1714]">{venue.name}</h2>
+                  <p className="mt-1 text-sm text-[#a09c98]">
+                    {venue.suburb}
+                    {venue.distanceKm != null && <> · {venue.distanceKm.toFixed(1)} km</>}
                   </p>
                 </div>
-                <a href="/map" className="button border-2 border-[#245c3b] bg-white text-[#245c3b] shadow-[3px_3px_0_#245c3b]">
-                  <MapPinned className="h-4 w-4" />
-                  Map
-                </a>
+                <span className="rounded-lg bg-[#f5f5f5] px-2 py-1 text-[11px] font-medium text-[#a09c98]">no price</span>
               </div>
-            )}
-
-              <div className="grid gap-2">
-                {sorted.map((listing) => (
-                  <article
-                    key={listing.id}
-                    className={`rounded-md border bg-white p-3 shadow-sm ${
-                      activeListing?.id === listing.id ? "border-[#245c3b]" : "border-[#2f2417]/10"
-                    }`}
-                    onMouseEnter={() => setActiveId(listing.id)}
-                    onClick={() => setActiveId(listing.id)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="font-black leading-tight">{listing.product}</h2>
-                        <p className="mt-1 text-sm font-bold text-black/55">
-                          {listing.venue} · {(listing.distanceKm ?? 0).toFixed(1)} km
-                        </p>
-                        <p className="mt-1 text-sm text-black/55">{listing.special}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-[#245c3b]">{money(listing.price)}</p>
-                        <p className="text-xs font-bold text-black/45">{listing.unit}</p>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-                {nearbyPlaces.filter((place) => !place.hasPrice).map((place) => (
-                  <article
-                    key={place.id}
-                    className={`rounded-md border bg-white p-3 shadow-sm ${
-                      activePlace?.id === place.id ? "border-[#245c3b]" : "border-[#2f2417]/10"
-                    }`}
-                    onMouseEnter={() => setActiveId(place.id)}
-                    onClick={() => setActiveId(place.id)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="font-black leading-tight">{place.venue}</h2>
-                        <p className="mt-1 text-sm font-bold text-black/55">
-                          {place.suburb} · {(place.distanceKm ?? 0).toFixed(1)} km
-                        </p>
-                        <p className="mt-1 text-sm text-black/55">No price yet</p>
-                      </div>
-                      <p className="rounded bg-black/5 px-2 py-1 text-xs font-black text-black/55">venue</p>
-                    </div>
-                  </article>
-                ))}
-                {coords && !loading && nearbyPlaces.length === 0 && (
-                  <div className="rounded-lg border border-black/10 bg-white p-6 text-center">
-                    <p className="text-lg font-black">No places found nearby</p>
-                    <p className="mt-1 text-sm font-bold text-black/50">Try increasing the radius or choosing Auckland.</p>
-                  </div>
-                )}
-              </div>
-          </div>
-        </section>
+            </article>
+          ))}
+        </div>
       </main>
 
-      {panel && (
-        <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setPanel(null)}>
-          <div
-            className="absolute bottom-0 left-0 right-0 max-h-[88dvh] overflow-auto rounded-t-2xl bg-[#fbf6ea] p-4 shadow-2xl lg:left-auto lg:top-0 lg:h-full lg:w-[420px] lg:max-h-none lg:rounded-l-2xl lg:rounded-tr-none"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xl font-black">
-                {panel === "filters" ? "Search" : panel === "post" ? "Post" : "Menu"}
-              </h2>
-              <button onClick={() => setPanel(null)} className="grid h-9 w-9 place-items-center rounded bg-white">
-                <X className="h-5 w-5" />
-              </button>
+      {/* ── Post price sheet ── */}
+      {showPost && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end" onClick={() => setShowPost(false)}>
+          <div className="w-full max-h-[88dvh] overflow-auto rounded-t-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#1a1714]">Post a price</h2>
+              <button onClick={() => setShowPost(false)} className="rounded-lg border border-[#ece8e3] p-1.5 text-[#6b6560]"><X className="h-4 w-4" /></button>
             </div>
-
-            {panel === "filters" && (
-              <Controls
-                region={region}
-                chooseRegion={chooseRegion}
-                locate={locate}
-                radius={radius}
-                setRadius={setRadius}
-                style={style}
-                setStyle={setStyle}
-                sort={sort}
-                setSort={setSort}
-                notice={notice}
-              />
-            )}
-            {panel === "post" && (
-              <Forms
-                submitApplication={submitApplication}
-                submitListing={submitListing}
-                region={region}
-              />
-            )}
-            {panel === "menu" && <DirectoryMenu activeTab={tab} chooseMenuAction={chooseMenuAction} />}
+            {postNotice && <p className={`mb-3 rounded-xl px-3 py-2 text-sm font-semibold ${postNotice.includes("!") ? "bg-[#f0faf4] text-[#245c3b]" : "bg-[#fff4f2] text-[#e8472a]"}`}>{postNotice}</p>}
+            <form onSubmit={submitListing} className="grid gap-3">
+              <input name="venue" required placeholder="Venue name" className="control" />
+              <select name="type" className="control">
+                <option value="store">Bottle shop</option>
+                <option value="bar">Pub</option>
+                <option value="maker">Local maker</option>
+              </select>
+              <input name="product" required placeholder="Product (e.g. Heineken 330ml)" className="control" />
+              <select name="style" className="control">
+                {styles.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <input name="price" required min="0" step="0.1" type="number" placeholder="Price $" className="control" />
+                <input name="unit" required placeholder="Unit (e.g. 6-pack)" className="control" />
+              </div>
+              <input name="special" placeholder="Special / note (optional)" className="control" />
+              <input name="suburb" required placeholder="Suburb" className="control" />
+              <select name="region" defaultValue={regions.includes(region) ? region : "Auckland"} className="control">
+                {regions.map((r) => <option key={r}>{r}</option>)}
+              </select>
+              <button className="w-full rounded-2xl bg-[#245c3b] py-3 text-sm font-bold text-white">Save price</button>
+            </form>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function Controls({
-  region,
-  chooseRegion,
-  locate,
-  radius,
-  setRadius,
-  style,
-  setStyle,
-  sort,
-  setSort,
-  notice,
-}: {
-  region: string;
-  chooseRegion: (region: string) => void;
-  locate: () => void;
-  radius: number;
-  setRadius: (radius: number) => void;
-  style: string;
-  setStyle: (style: string) => void;
-  sort: SortMode;
-  setSort: (sort: SortMode) => void;
-  notice: string;
-}) {
-  return (
-    <div className="space-y-3">
-      <label className="block">
-        <span className="text-sm font-bold text-black/55">City</span>
-        <select value={region} onChange={(event) => chooseRegion(event.target.value)} className="control mt-1 w-full">
-          {regions.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-      </label>
-      <button onClick={locate} className="button w-full bg-[#245c3b] text-white">
-        <LocateFixed className="h-4 w-4" />
-        Near me
-      </button>
-      <label className="block">
-        <span className="flex justify-between text-sm font-bold text-black/55">
-          Radius <strong>{radius} km</strong>
-        </span>
-        <input
-          type="range"
-          min={1}
-          max={20}
-          value={radius}
-          onChange={(event) => setRadius(Number(event.target.value))}
-          className="mt-2 w-full accent-[#245c3b]"
-        />
-      </label>
-      <select value={style} onChange={(event) => setStyle(event.target.value)} className="control w-full">
-        <option value="all">Any style</option>
-        {styles.map((item) => (
-          <option key={item} value={item}>{item}</option>
-        ))}
-      </select>
-      <select value={sort} onChange={(event) => setSort(event.target.value as SortMode)} className="control w-full">
-        <option value="price">Cheapest</option>
-        <option value="distance">Nearest</option>
-        <option value="fresh">Newest</option>
-      </select>
-      {notice && <p className="rounded bg-[#edf7ef] p-2 text-sm font-bold text-[#245c3b]">{notice}</p>}
-    </div>
-  );
-}
-
-function Forms({
-  submitApplication,
-  submitListing,
-  region,
-}: {
-  submitApplication: (event: FormEvent<HTMLFormElement>) => void;
-  submitListing: (event: FormEvent<HTMLFormElement>) => void;
-  region: string;
-}) {
-  return (
-    <div className="grid gap-4">
-      <section className="rounded-lg border border-black/10 bg-white p-4">
-        <h3 className="font-black">Apply</h3>
-        <form onSubmit={submitApplication} className="mt-3 grid gap-3">
-          <select name="applicationType" className="control">
-            <option value="venue">Pub or bottle shop</option>
-            <option value="maker">Local maker</option>
-          </select>
-          <input name="businessName" required placeholder="Business name" className="control" />
-          <input name="contactEmail" required type="email" placeholder="Email" className="control" />
-          <input name="licence" required placeholder="Licence details" className="control" />
-          <button className="button bg-[#245c3b] text-white">Send</button>
-        </form>
-      </section>
-
-      <section className="rounded-lg border border-black/10 bg-white p-4">
-        <h3 className="font-black">Post price</h3>
-        <form onSubmit={submitListing} className="mt-3 grid gap-3">
-          <input name="venue" required placeholder="Venue" className="control" />
-          <select name="type" className="control">
-            <option value="store">Bottle shop</option>
-            <option value="bar">Pub</option>
-            <option value="maker">Local maker</option>
-          </select>
-          <input name="product" required placeholder="Product" className="control" />
-          <select name="style" className="control">
-            {styles.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-          <input name="price" required min="0" step="0.1" type="number" placeholder="Price" className="control" />
-          <input name="unit" required placeholder="Unit" className="control" />
-          <input name="special" placeholder="Special" className="control" />
-          <fieldset className="grid gap-3 rounded-md border border-black/10 bg-[#fbf6ea] p-3">
-            <legend className="px-1 text-sm font-black text-black/60">Location</legend>
-            <input name="suburb" required placeholder="Suburb" className="control" />
-            <select name="region" defaultValue={regions.includes(region) ? region : "Wellington"} className="control">
-              {regions.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <div className="grid grid-cols-2 gap-2">
-              <input name="lat" inputMode="decimal" placeholder="Lat optional" className="control min-w-0" />
-              <input name="lng" inputMode="decimal" placeholder="Lng optional" className="control min-w-0" />
-            </div>
-          </fieldset>
-          <button className="button bg-[#245c3b] text-white">Save price</button>
-        </form>
-      </section>
-    </div>
-  );
-}
-
-function DirectoryMenu({
-  activeTab,
-  chooseMenuAction,
-}: {
-  activeTab: Tab;
-  chooseMenuAction: (action: MenuAction) => void;
-}) {
-  return (
-    <div className="grid gap-2">
-      {tabs.map((item) => (
-        <button
-          key={item.type}
-          type="button"
-          onClick={() => chooseMenuAction(item.type)}
-          className={`flex h-12 items-center gap-3 rounded-md border px-3 text-left text-sm font-black ${
-            activeTab === item.type
-              ? "border-[#245c3b] bg-[#245c3b] text-white"
-              : "border-black/10 bg-white text-[#1f1b16]"
-          }`}
-        >
-          {item.icon}
-          {item.label}
+      {/* ── Bottom navigation ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-[#ece8e3] bg-white">
+        <button onClick={() => setTab("store")} className={`flex flex-1 flex-col items-center gap-0.5 ${tab === "store" && !showPost ? "text-[#245c3b]" : "text-[#a09c98]"}`}>
+          <Store className="h-5 w-5" />
+          <span className="text-[10px] font-semibold">Shops</span>
         </button>
-      ))}
-      <button
-        type="button"
-        onClick={() => chooseMenuAction("map")}
-        className="flex h-12 items-center gap-3 rounded-md border border-black/10 bg-white px-3 text-left text-sm font-black text-[#1f1b16]"
-      >
-        <MapPinned className="h-4 w-4" />
-        Map
-      </button>
-<button
-        type="button"
-        onClick={() => chooseMenuAction("post")}
-        className="mt-2 flex h-12 items-center justify-center rounded-md bg-[#245c3b] px-3 text-sm font-black text-white"
-      >
-        Post a price
-      </button>
-      <a
-        href="/"
-        className="mt-1 flex h-12 items-center justify-center gap-2 rounded-md border-2 border-[#2f2417] bg-[#fff7df] px-3 text-sm font-black text-[#245c3b]"
-      >
-        🍜 Switch to mealspy
-      </a>
+        <button onClick={() => setTab("bar")} className={`flex flex-1 flex-col items-center gap-0.5 ${tab === "bar" && !showPost ? "text-[#245c3b]" : "text-[#a09c98]"}`}>
+          <Beer className="h-5 w-5" />
+          <span className="text-[10px] font-semibold">Pubs</span>
+        </button>
+        <button onClick={() => setTab("maker")} className={`flex flex-1 flex-col items-center gap-0.5 ${tab === "maker" && !showPost ? "text-[#245c3b]" : "text-[#a09c98]"}`}>
+          <Building2 className="h-5 w-5" />
+          <span className="text-[10px] font-semibold">Makers</span>
+        </button>
+        <Link href="/map" className="flex flex-1 flex-col items-center gap-0.5 text-[#a09c98]">
+          <MapPinned className="h-5 w-5" />
+          <span className="text-[10px] font-semibold">Map</span>
+        </Link>
+        <button onClick={() => setShowPost(true)} className={`flex flex-1 flex-col items-center gap-0.5 ${showPost ? "text-[#245c3b]" : "text-[#a09c98]"}`}>
+          <span className="text-xl leading-none">➕</span>
+          <span className="text-[10px] font-semibold">Post</span>
+        </button>
+        <Link href="/" className="flex flex-1 flex-col items-center gap-0.5 text-[#a09c98]">
+          <span className="text-xl leading-none">🍜</span>
+          <span className="text-[10px] font-semibold">mealspy</span>
+        </Link>
+      </nav>
     </div>
   );
 }
