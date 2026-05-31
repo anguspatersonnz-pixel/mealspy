@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
     claimToken: nanoid(32),
     createdAt: new Date().toISOString(),
-    approved: true,
+    approved: false,
     menuStatus: "none",
     openingHours: openingHours as OpeningHours ?? null,
   };

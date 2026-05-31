@@ -333,8 +333,8 @@ export default function EditVenuePage() {
         {/* Welcome banner for fresh listings */}
         {isNew && (
           <div className="rounded-2xl border border-[#c8e6d4] bg-[#f0faf5] p-4 space-y-2">
-            <p className="text-sm font-bold text-[#1a6b3c]">🎉 You&apos;re live — now add your menu!</p>
-            <p className="text-xs text-[#1a6b3c]/80">Use any tab above to add items. Paste your menu, upload a CSV, take a photo, or add one by one.</p>
+            <p className="text-sm font-bold text-[#1a6b3c]">✅ Sent for approval — add your menu while you wait!</p>
+            <p className="text-xs text-[#1a6b3c]/80">Your listing is under review. Add your menu now so it&apos;s ready to go live straight away.</p>
             <div className="rounded-lg bg-white border border-[#c8e6d4] px-3 py-2 space-y-1">
               <p className="text-[10px] font-bold text-[#a09c98] uppercase tracking-wide">Your edit link — bookmark this</p>
               <p className="text-xs font-mono text-[#1a1714] break-all select-all">{typeof window !== "undefined" ? window.location.href.replace("&new=1", "") : ""}</p>
