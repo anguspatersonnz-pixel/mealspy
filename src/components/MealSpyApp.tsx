@@ -6,6 +6,70 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FOOD_CATEGORIES, isOpenNow, money, regionCentres, regions } from "@/lib/data";
 import type { FoodCategory, FoodItem, FoodVenue } from "@/lib/data";
 
+type IntroPhase = "orbit" | "money" | "done";
+
+function NoodleIntro() {
+  const [phase, setPhase] = useState<IntroPhase>("orbit");
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase("money"), 1900);
+    const t2 = setTimeout(() => setPhase("done"),  3200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Bowl + orbit anchor */}
+      <div className="relative flex items-center justify-center" style={{ paddingTop: "1.5rem" }}>
+        {/* Steam wisps */}
+        <div className="absolute top-0 flex gap-3">
+          <span className="steam-1 inline-block h-5 w-1.5 rounded-full bg-[#e8472a]/20 blur-[2px]" />
+          <span className="steam-2 inline-block h-6 w-1.5 rounded-full bg-[#e8472a]/25 blur-[2px]" />
+          <span className="steam-3 inline-block h-5 w-1.5 rounded-full bg-[#e8472a]/20 blur-[2px]" />
+        </div>
+
+        <span
+          className="inline-block select-none text-7xl"
+          style={{ animation: "bowl-pop-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both, bowl-float 2.8s ease-in-out 0.55s infinite" }}
+        >
+          🍜
+        </span>
+
+        {/* Orbiting "mealspy" */}
+        {phase === "orbit" && (
+          <span
+            className="pointer-events-none absolute whitespace-nowrap text-xl font-black text-[#1a1714]"
+            style={{ top: "50%", left: "50%", animation: "mealspy-orbit 1.9s ease-in-out forwards" }}
+          >
+            mealspy
+          </span>
+        )}
+
+        {/* 💰 arcs from orbit end down to title */}
+        {phase === "money" && (
+          <span
+            className="pointer-events-none absolute select-none text-3xl"
+            style={{ top: "50%", left: "50%", animation: "money-land 1.3s ease-in-out forwards" }}
+          >
+            💰
+          </span>
+        )}
+      </div>
+
+      {/* Title — appears after animation */}
+      <h1
+        className="mt-2 text-3xl font-black text-[#1a1714]"
+        style={{
+          opacity: phase === "done" ? undefined : 0,
+          animation: phase === "done" ? "title-arrive 0.45s cubic-bezier(0.34,1.56,0.64,1) both" : "none",
+        }}
+      >
+        mealspy
+      </h1>
+    </div>
+  );
+}
+
 type VenueWithMeta = FoodVenue & { cheapestPrice: number | null; dealCount: number };
 type SortMode = "smart" | "deals" | "price" | "nearby";
 type AccountProfile = {
@@ -157,20 +221,8 @@ export default function MealSpyApp() {
   if (!splashDone) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white px-6 text-center">
-        {/* Animated noodle bowl */}
-        <div className="relative flex flex-col items-center">
-          {/* Steam wisps */}
-          <div className="absolute -top-6 flex gap-3">
-            <span className="steam-1 inline-block h-5 w-1.5 rounded-full bg-[#e8472a]/20 blur-[2px]" />
-            <span className="steam-2 inline-block h-6 w-1.5 rounded-full bg-[#e8472a]/25 blur-[2px]" />
-            <span className="steam-3 inline-block h-5 w-1.5 rounded-full bg-[#e8472a]/20 blur-[2px]" />
-          </div>
-          <span className="inline-block text-7xl select-none" style={{ animation: "bowl-pop-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both, bowl-float 2.8s ease-in-out 0.55s infinite" }}>🍜</span>
-        </div>
-        <div>
-          <h1 className="text-3xl font-black text-[#1a1714]">mealspy</h1>
-          <p className="mt-2 text-sm text-[#a09c98]">Cheap food and deals near you</p>
-        </div>
+        <NoodleIntro />
+        <p className="text-sm text-[#a09c98]">Cheap food and deals near you</p>
         <div className="w-full max-w-xs space-y-2.5">
           <button onClick={() => { setSplashDone(true); locate(); }} className="w-full rounded-2xl bg-[#e8472a] py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2">
             <LocateFixed className="h-4 w-4" /> Use my location
