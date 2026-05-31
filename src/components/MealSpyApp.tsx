@@ -100,6 +100,8 @@ export default function MealSpyApp() {
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [savedVenueIds, setSavedVenueIds] = useState<string[]>([]);
   const [splashDone, setSplashDone] = useState(false);
+  const [showCheapest, setShowCheapest] = useState(false);
+  const [showDeals, setShowDeals] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -313,6 +315,48 @@ export default function MealSpyApp() {
 
       {/* ── List ── */}
       <main className="flex-1 px-3 py-3 space-y-2.5 max-w-2xl mx-auto w-full">
+
+        {/* ── Cheapest near you ── */}
+        <div className="rounded-2xl border border-[#ece8e3] bg-white overflow-hidden">
+          <button
+            onClick={() => setShowCheapest((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">💸</span>
+              <span className="text-sm font-semibold text-[#1a1714]">Cheapest near you</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-[#a09c98] transition-transform ${showCheapest ? "rotate-180" : ""}`} />
+          </button>
+          {showCheapest && (
+            <div className="border-t border-[#ece8e3] px-4 py-5 text-center">
+              <p className="text-2xl mb-2">🍽️</p>
+              <p className="text-sm font-semibold text-[#1a1714]">Coming soon</p>
+              <p className="mt-1 text-xs text-[#a09c98]">We&apos;ll surface the best value spots near you once venues add their menus.</p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Deals ── */}
+        <div className="rounded-2xl border border-[#ece8e3] bg-white overflow-hidden">
+          <button
+            onClick={() => setShowDeals((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔥</span>
+              <span className="text-sm font-semibold text-[#1a1714]">Deals</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-[#a09c98] transition-transform ${showDeals ? "rotate-180" : ""}`} />
+          </button>
+          {showDeals && (
+            <div className="border-t border-[#ece8e3] px-4 py-5 text-center">
+              <p className="text-2xl mb-2">🏷️</p>
+              <p className="text-sm font-semibold text-[#1a1714]">No deals right now</p>
+              <p className="mt-1 text-xs text-[#a09c98]">Deals from local venues will appear here when they go live.</p>
+            </div>
+          )}
+        </div>
 
         {/* Status row */}
         <div className="flex items-center justify-between px-1">
