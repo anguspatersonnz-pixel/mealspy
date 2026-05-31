@@ -70,7 +70,12 @@ function NoodleIntro() {
   );
 }
 
-type VenueWithMeta = FoodVenue & { cheapestPrice: number | null; dealCount: number; searchableText?: string };
+type VenueWithMeta = FoodVenue & {
+  cheapestPrice: number | null;
+  cheapestItemName?: string | null;
+  dealCount: number;
+  searchableText?: string;
+};
 type SortMode = "smart" | "deals" | "price" | "nearby";
 type AccountProfile = {
   name?: string;
@@ -472,8 +477,11 @@ export default function MealSpyApp() {
                     <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                       {venue.cheapestPrice != null ? (
                         <div className="text-right">
-                          <p className="text-[11px] font-medium text-[#a09c98]">from</p>
+                          <p className="text-[11px] font-medium text-[#a09c98]">cheapest</p>
                           <p className="text-xl font-bold text-[#1a6b3c]">{money(venue.cheapestPrice)}</p>
+                          {venue.cheapestItemName && (
+                            <p className="max-w-[7.5rem] truncate text-[11px] font-semibold text-[#6b6560]">{venue.cheapestItemName}</p>
+                          )}
                         </div>
                       ) : (
                         <span className="rounded-lg bg-[#faf9f7] px-2 py-1 text-[11px] font-medium text-[#a09c98]">

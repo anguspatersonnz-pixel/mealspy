@@ -221,7 +221,7 @@ export async function getFoodVenuesNear(params: {
   lng: number;
   radiusKm: number;
   category?: string;
-}): Promise<(FoodVenue & { cheapestPrice: number | null; dealCount: number; searchableText: string })[]> {
+}): Promise<(FoodVenue & { cheapestPrice: number | null; cheapestItemName: string | null; dealCount: number; searchableText: string })[]> {
   const venues = await getFoodVenues();
   const items = await getFoodItems();
   const now = new Date();
@@ -230,7 +230,11 @@ export async function getFoodVenuesNear(params: {
     .filter((v) => !params.category || params.category === "all" || v.category === params.category)
     .map((v) => {
       const venueItems = items.filter((i) => i.venueId === v.id && i.isAvailable);
-      const cheapestPrice = venueItems.length > 0 ? Math.min(...venueItems.map((i) => i.price)) : null;
+      const cheapestItem = venueItems.reduce<FoodItem | null>((best, item) => {
+        if (!best || item.price < best.price) return item;
+        return best;
+      }, null);
+      const cheapestPrice = cheapestItem?.price ?? null;
       const dealCount = venueItems.filter(
         (i) => i.isDeal && (!i.dealExpires || new Date(i.dealExpires) > now)
       ).length;
@@ -250,6 +254,7 @@ export async function getFoodVenuesNear(params: {
         ...v,
         distanceKm: Number(distanceKm(params, v).toFixed(1)),
         cheapestPrice,
+        cheapestItemName: cheapestItem?.name ?? null,
         dealCount,
         searchableText,
       };
