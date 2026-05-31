@@ -308,13 +308,33 @@ export default function ListYourPlace() {
 
         {/* ── Step 3: done ── */}
         {step === "done" && venue && (
-          <div className="py-10 text-center">
-            <p className="text-5xl mb-5">🎉</p>
-            <h2 className="text-2xl font-bold text-[#1a1714]">You&apos;re on the map!</h2>
-            <p className="mt-2 text-sm text-[#6b6560] max-w-xs mx-auto">
-              People nearby can now find your place. Thanks for being part of mealspy.
-            </p>
-            <div className="mt-8 space-y-3 max-w-xs mx-auto text-left">
+          <div className="space-y-4">
+            <div className="py-8 text-center">
+              <p className="text-5xl mb-4">🎉</p>
+              <h2 className="text-2xl font-bold text-[#1a1714]">You&apos;re on the map!</h2>
+              <p className="mt-2 text-sm text-[#6b6560] max-w-xs mx-auto">
+                People nearby can now find your place.
+              </p>
+            </div>
+
+            {/* Save your management link */}
+            <div className="card p-4 border-[#fad5ce] bg-[#fff8f6]">
+              <p className="text-sm font-semibold text-[#c73d22] mb-1">⚠️ Save your management link</p>
+              <p className="text-xs text-[#6b6560] mb-3">This is the only way to edit your menu and prices later. Bookmark it or copy it somewhere safe.</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 overflow-hidden rounded-lg bg-white border border-[#fad5ce] px-3 py-2 text-[11px] font-mono text-[#6b6560] break-all">
+                  {typeof window !== "undefined" ? `${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}` : `/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}`)}
+                  className="flex-shrink-0 rounded-lg border border-[#fad5ce] bg-white px-3 py-2 text-xs font-semibold text-[#e8472a]"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Link
                 href={`/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
                 className="btn-primary flex items-center justify-center gap-2"
@@ -325,9 +345,6 @@ export default function ListYourPlace() {
                 Browse mealspy
               </Link>
             </div>
-            <p className="mt-6 text-xs text-[#a09c98] max-w-xs mx-auto">
-              Bookmark your edit link — it includes your token and lets you update your listing anytime.
-            </p>
           </div>
         )}
       </main>

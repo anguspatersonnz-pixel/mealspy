@@ -1,6 +1,6 @@
 "use client";
 
-import { Beer, Bell, ChevronDown, ChevronUp, Heart, LocateFixed, Map, MapPin, Navigation, Plus, Search, SlidersHorizontal, Sparkles, Tag, TrendingDown, User, WalletCards, X } from "lucide-react";
+import { Beer, Bell, ChevronDown, ChevronUp, Heart, LocateFixed, Map, MapPin, Navigation, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Tag, TrendingDown, User, WalletCards, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FOOD_CATEGORIES, money, regionCentres, regions } from "@/lib/data";
@@ -23,7 +23,7 @@ const savedStorageKey = "mealspy.savedVenues";
 export default function MealSpyApp() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [region, setRegion] = useState("Auckland");
-  const [radius, setRadius] = useState(5);
+  const [radius, setRadius] = useState(15);
   const [category, setCategory] = useState<FoodCategory | "all">("all");
   const [venues, setVenues] = useState<VenueWithMeta[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,9 +36,17 @@ export default function MealSpyApp() {
   const [priceCap, setPriceCap] = useState("all");
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [savedVenueIds, setSavedVenueIds] = useState<string[]>([]);
+  const [locationAsked, setLocationAsked] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { locate(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Auto-locate only if permission was previously granted (no prompt needed)
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then((result) => {
+        if (result.state === "granted") locate();
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     try {
@@ -85,6 +93,7 @@ export default function MealSpyApp() {
   }
 
   function locate() {
+    setLocationAsked(true);
     if (!navigator.geolocation) {
       setCoords(regionCentres.Auckland);
       return;
@@ -156,6 +165,35 @@ export default function MealSpyApp() {
   const savedVisibleCount = filtered.filter((venue) => savedVenueIds.includes(venue.id)).length;
   const firstName = profile?.name?.trim().split(" ")[0];
 
+  // Show full-screen location request on first visit before anything else
+  if (!locationAsked && !coords) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-[#faf9f7] px-6 text-center">
+        <span className="text-6xl">🍜</span>
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a1714]">mealspy</h1>
+          <p className="mt-2 text-sm text-[#6b6560]">Find cheap food and deals near you</p>
+        </div>
+        <div className="w-full max-w-xs space-y-3">
+          <button
+            onClick={locate}
+            className="btn-primary w-full flex items-center justify-center gap-2 py-3"
+          >
+            <LocateFixed className="h-4 w-4" />
+            Use my location
+          </button>
+          <button
+            onClick={() => { setLocationAsked(true); chooseRegion("Auckland"); }}
+            className="btn-ghost w-full py-3"
+          >
+            Pick a city instead
+          </button>
+        </div>
+        <p className="text-xs text-[#a09c98]">Your location is only used to find nearby places — never stored.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh">
       {/* ── Header ── */}
@@ -190,10 +228,10 @@ export default function MealSpyApp() {
               </button>
               <Link
                 href="/drinks"
-                className="rounded-lg border border-[#ece8e3] bg-white p-2 text-[#6b6560] transition hover:border-[#1a6b3c] hover:text-[#1a6b3c]"
-                title="Switch to yourbeer"
+                className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#1a6b3c] hover:text-[#1a6b3c]"
               >
-                <Beer className="h-4 w-4" />
+                <Beer className="h-3.5 w-3.5" />
+                <span>yourbeer</span>
               </Link>
               <Link
                 href="/account"
@@ -363,6 +401,10 @@ export default function MealSpyApp() {
               <Plus className="h-3.5 w-3.5" />
               List
             </Link>
+            <Link href="/food/manage" className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#e8472a] hover:text-[#e8472a]">
+              <Pencil className="h-3.5 w-3.5" />
+              Manage
+            </Link>
           </div>
         </div>
 
@@ -398,16 +440,21 @@ export default function MealSpyApp() {
         )}
 
         {/* Empty state */}
-        {!loading && filtered.length === 0 && (
+        {!loading && coords !== null && filtered.length === 0 && (
           <div className="rounded-2xl border border-[#ece8e3] bg-white px-6 py-12 text-center">
             <p className="text-4xl mb-4">🍽️</p>
-            <p className="text-lg font-semibold text-[#1a1714]">Nothing here yet</p>
+            <p className="text-lg font-semibold text-[#1a1714]">Nothing within {radius} km</p>
             <p className="mt-1.5 text-sm text-[#6b6560] max-w-xs mx-auto">
-              Be the first to list a food place in this area — it&apos;s free and takes two minutes.
+              Try a wider radius or be the first to list a place here — it&apos;s free.
             </p>
-            <Link href="/list" className="btn-primary mt-5 mx-auto">
-              List a place
-            </Link>
+            <div className="mt-5 flex flex-col items-center gap-2">
+              {radius < 30 && (
+                <button onClick={() => setRadius(Math.min(radius + 10, 30))} className="btn-primary mx-auto">
+                  Expand to {Math.min(radius + 10, 30)} km
+                </button>
+              )}
+              <Link href="/list" className="btn-ghost mx-auto">List a place</Link>
+            </div>
           </div>
         )}
 

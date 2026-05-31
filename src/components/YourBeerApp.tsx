@@ -242,8 +242,8 @@ export default function YourBeerApp() {
       <div className="border-b border-[#2f2417]/10 bg-[#f2c35d] shadow-sm">
         <header className="hidden min-h-[86px] items-center justify-between px-5 md:flex">
         <div className="flex items-center gap-3 min-w-0">
-          <a href="/" className="grid h-9 w-9 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-sm font-black shadow-[3px_3px_0_#2f2417] text-[#245c3b]" title="Back to MealSpy">
-            🍜
+          <a href="/" className="flex items-center gap-1.5 rounded-md border-2 border-[#2f2417] bg-[#fff7df] px-3 py-1.5 text-sm font-black shadow-[3px_3px_0_#2f2417] text-[#245c3b]" title="Switch to mealspy">
+            🍜 <span>mealspy</span>
           </a>
           <a href="#top" className="flex min-w-0 items-center gap-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md border-2 border-[#2f2417] bg-[#fff7df] text-3xl shadow-[4px_4px_0_#2f2417]">
@@ -622,6 +622,12 @@ function DirectoryMenu({
       >
         Post a price
       </button>
+      <a
+        href="/"
+        className="mt-1 flex h-12 items-center justify-center gap-2 rounded-md border-2 border-[#2f2417] bg-[#fff7df] px-3 text-sm font-black text-[#245c3b]"
+      >
+        🍜 Switch to mealspy
+      </a>
     </div>
   );
 }
