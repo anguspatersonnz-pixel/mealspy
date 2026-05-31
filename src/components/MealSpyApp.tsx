@@ -1,6 +1,6 @@
 "use client";
 
-import { Beer, Bell, ChevronDown, ChevronUp, Heart, LocateFixed, Map, MapPin, Navigation, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Tag, TrendingDown, User, WalletCards, X } from "lucide-react"; // Sparkles kept for sort button
+import { Bell, ChevronDown, ChevronUp, Heart, LocateFixed, MapPin, Navigation, Search, SlidersHorizontal, Tag, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FOOD_CATEGORIES, isOpenNow, money, regionCentres, regions } from "@/lib/data";
@@ -165,277 +165,126 @@ export default function MealSpyApp() {
   const savedVisibleCount = filtered.filter((venue) => savedVenueIds.includes(venue.id)).length;
   const firstName = profile?.name?.trim().split(" ")[0];
 
-  // Show full-screen location request on first visit before anything else
+  // Location splash
   if (!locationAsked && !coords) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-[#faf9f7] px-6 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white px-6 text-center">
         <span className="text-6xl">🍜</span>
         <div>
-          <h1 className="text-2xl font-bold text-[#1a1714]">mealspy</h1>
-          <p className="mt-2 text-sm text-[#6b6560]">Find cheap food and deals near you</p>
+          <h1 className="text-3xl font-black text-[#1a1714]">mealspy</h1>
+          <p className="mt-2 text-sm text-[#a09c98]">Cheap food and deals near you</p>
         </div>
-        <div className="w-full max-w-xs space-y-3">
-          <button
-            onClick={locate}
-            className="btn-primary w-full flex items-center justify-center gap-2 py-3"
-          >
-            <LocateFixed className="h-4 w-4" />
-            Use my location
+        <div className="w-full max-w-xs space-y-2.5">
+          <button onClick={locate} className="w-full rounded-2xl bg-[#e8472a] py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2">
+            <LocateFixed className="h-4 w-4" /> Use my location
           </button>
-          <button
-            onClick={() => { setLocationAsked(true); chooseRegion("Auckland"); }}
-            className="btn-ghost w-full py-3"
-          >
+          <button onClick={() => { setLocationAsked(true); chooseRegion("Auckland"); }} className="w-full rounded-2xl border border-[#ece8e3] py-3.5 text-sm font-semibold text-[#6b6560]">
             Pick a city instead
           </button>
         </div>
-        <p className="text-xs text-[#a09c98]">Your location is only used to find nearby places — never stored.</p>
+        <p className="text-xs text-[#c0bbb7]">Location never stored or shared</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col bg-[#f5f5f5] pb-20">
+
       {/* ── Header ── */}
-      <header className="sticky top-0 z-40 border-b border-[#ece8e3] bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-6xl px-4">
-          {/* Top bar */}
-          <div className="flex items-center justify-between gap-3 py-3.5">
-            <div className="flex items-center gap-2.5">
-              <span className="text-2xl leading-none">🍜</span>
-              <div>
-                <span className="block text-[17px] font-bold leading-none tracking-tight text-[#1a1714]">mealspy</span>
-                <span className="block text-[11px] font-medium text-[#a09c98] leading-none mt-0.5">
-                  {firstName ? `built for ${firstName}` : "cheap food near you"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={locate}
-                disabled={locating}
-                className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#e8472a] hover:text-[#e8472a] disabled:opacity-50"
-              >
-                <LocateFixed className={`h-3.5 w-3.5 ${locating ? "animate-pulse" : ""}`} />
-                {locating ? "Locating…" : region === "Near me" ? "Near me" : region}
-              </button>
-              <button
-                onClick={() => setShowFilters((v) => !v)}
-                className={`rounded-lg border p-2 transition ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] bg-white text-[#6b6560] hover:border-[#e8472a] hover:text-[#e8472a]"}`}
-                aria-label="Filters"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-              </button>
-              <Link
-                href="/drinks"
-                className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#1a6b3c] hover:text-[#1a6b3c]"
-              >
-                <Beer className="h-3.5 w-3.5" />
-                <span>yourbeer</span>
-              </Link>
-              <Link
-                href="/account"
-                className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#e8472a] hover:text-[#e8472a]"
-                title="Account"
-              >
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Account</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Search */}
-          <div className="pb-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a09c98]" />
-              <input
-                ref={searchRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a place or suburb…"
-                className="h-10 w-full rounded-xl border border-[#ece8e3] bg-[#faf9f7] pl-10 pr-10 text-sm text-[#1a1714] outline-none placeholder:text-[#a09c98] focus:border-[#e8472a] focus:bg-white focus:ring-2 focus:ring-[#e8472a]/10 transition"
-              />
-              {query && (
-                <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a09c98]">
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Filter panel */}
-          {showFilters && (
-            <div className="border-t border-[#ece8e3] py-3">
-              <div className="grid gap-3 sm:grid-cols-4">
-                <label className="block">
-                  <span className="label">City</span>
-                  <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1.5">
-                    {regions.map((r) => <option key={r}>{r}</option>)}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="label flex justify-between">
-                    Radius <span className="normal-case font-semibold text-[#1a1714]">{radius} km</span>
-                  </span>
-                  <input
-                    type="range" min={1} max={20} value={radius}
-                    onChange={(e) => setRadius(Number(e.target.value))}
-                    className="mt-3 w-full accent-[#e8472a]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="label">Budget</span>
-                  <select value={priceCap} onChange={(e) => setPriceCap(e.target.value)} className="control mt-1.5">
-                    <option value="all">Any price</option>
-                    <option value="10">Under $10</option>
-                    <option value="15">Under $15</option>
-                    <option value="20">Under $20</option>
-                    <option value="25">Under $25</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="label">Type</span>
-                  <select value={category} onChange={(e) => setCategory(e.target.value as FoodCategory | "all")} className="control mt-1.5">
-                    <option value="all">All types</option>
-                    {FOOD_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Category chips */}
-          <div className="flex gap-2 overflow-x-auto pb-3 pt-0.5 scrollbar-hide">
-            <button
-              onClick={() => setCategory("all")}
-              className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${category === "all" ? "bg-[#e8472a] text-white" : "bg-[#faf9f7] text-[#6b6560] hover:bg-[#ece8e3]"}`}
-            >
-              All
-            </button>
-            {FOOD_CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                onClick={() => setCategory(c.value)}
-                className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${category === c.value ? "bg-[#e8472a] text-white" : "bg-[#faf9f7] text-[#6b6560] hover:bg-[#ece8e3]"}`}
-              >
-                {c.emoji} {c.label}
-              </button>
-            ))}
-          </div>
+      <header className="sticky top-0 z-40 bg-white border-b border-[#ece8e3]">
+        {/* Top bar — centred logo */}
+        <div className="relative flex h-14 items-center justify-center px-4">
+          <button onClick={locate} disabled={locating} className="absolute left-4 flex items-center gap-1 text-xs font-semibold text-[#6b6560] disabled:opacity-50">
+            <LocateFixed className={`h-4 w-4 ${locating ? "animate-pulse text-[#e8472a]" : ""}`} />
+            <span className="max-w-[90px] truncate">{locating ? "Locating…" : region === "Near me" ? "Near me" : region}</span>
+          </button>
+          <span className="text-lg font-black tracking-tight text-[#1a1714]">🍜 mealspy</span>
+          <button onClick={() => setShowFilters((v) => !v)} className={`absolute right-4 rounded-xl border p-2 ${showFilters ? "border-[#e8472a] bg-[#fff4f2] text-[#e8472a]" : "border-[#ece8e3] text-[#6b6560]"}`}>
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
         </div>
-      </header>
 
-      {/* ── Main ── */}
-      <main className="mx-auto grid max-w-6xl gap-5 px-4 py-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-4 lg:sticky lg:top-40 lg:self-start">
-        <section className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
-            <TrendingDown className="mb-1 h-4 w-4 text-[#1a6b3c]" />
-            <p className="text-lg font-bold leading-none text-[#1a1714]">{cheapestVenue?.cheapestPrice != null ? money(cheapestVenue.cheapestPrice) : "--"}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#a09c98]">cheapest</p>
-          </div>
-          <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
-            <Tag className="mb-1 h-4 w-4 text-[#e8472a]" />
-            <p className="text-lg font-bold leading-none text-[#1a1714]">{dealCount}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#a09c98]">deal spots</p>
-          </div>
-          <div className="rounded-xl border border-[#ece8e3] bg-white px-3 py-3">
-            <Heart className="mb-1 h-4 w-4 text-[#b83280]" />
-            <p className="text-lg font-bold leading-none text-[#1a1714]">{savedVisibleCount}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#a09c98]">saved here</p>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-[#d7ece0] bg-[#f4fbf7] px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold text-[#173f2a]">{firstName ? `${firstName}'s picks` : "Make it yours"}</p>
-              <p className="mt-0.5 text-xs leading-5 text-[#3c6a4f]">
-                {profile
-                  ? `${profile.favouriteFood || "Food"} around ${profile.homeCity || region}, with a ${priceCap === "all" ? "flexible" : `$${priceCap}`} budget.`
-                  : "Save your city, budget, food tastes, and alerts so mealspy opens tuned to you."}
-              </p>
-            </div>
-            <Link href="/account" className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-[#1a6b3c] shadow-sm transition hover:bg-[#edf8f1]">
-              <User className="h-3.5 w-3.5" />
-              {profile ? "Edit" : "Set up"}
-            </Link>
-          </div>
-        </section>
-
-        {/* Status + CTA */}
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#ece8e3] bg-white px-4 py-3">
-          <p className="text-sm text-[#6b6560]">
-            {loading ? (
-              <span className="animate-pulse">Finding places…</span>
-            ) : (
-              <>{filtered.length} place{filtered.length !== 1 ? "s" : ""} within {radius} km</>
-            )}
-          </p>
-          <div className="flex items-center gap-2">
-            <Link href="/food/map" className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#1a6b3c] hover:text-[#1a6b3c]">
-              <Map className="h-3.5 w-3.5" />
-              Map
-            </Link>
-            <Link href="/list" className="flex items-center gap-1.5 rounded-lg bg-[#e8472a] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#c73d22]">
-              <Plus className="h-3.5 w-3.5" />
-              List
-            </Link>
-            <Link href="/food/manage" className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#e8472a] hover:text-[#e8472a]">
-              <Pencil className="h-3.5 w-3.5" />
-              Manage
-            </Link>
+        {/* Search bar */}
+        <div className="px-4 pb-2.5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c0bbb7]" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a place or suburb…"
+              className="h-10 w-full rounded-xl bg-[#f5f5f5] pl-9 pr-8 text-sm text-[#1a1714] outline-none placeholder:text-[#c0bbb7] focus:bg-white focus:ring-2 focus:ring-[#e8472a]/20 transition"
+            />
+            {query && <button onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c0bbb7]"><X className="h-4 w-4" /></button>}
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide lg:grid lg:grid-cols-2 lg:overflow-visible">
-          {([
-            ["smart", "Best match", Sparkles],
-            ["deals", "Deals", Tag],
-            ["price", "Cheapest", WalletCards],
-            ["nearby", "Nearest", Navigation],
-          ] as const).map(([mode, label, Icon]) => (
-            <button
-              key={mode}
-              onClick={() => setSortMode(mode)}
-              className={`flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${sortMode === mode ? "bg-[#1a1714] text-white" : "bg-white text-[#6b6560] hover:bg-[#ece8e3]"}`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          ))}
-        </div>
-        </aside>
-
-        <section className="min-w-0">
-
-        {/* Deals banner */}
-        {hasDeals && !loading && (
-          <div className="mb-4 flex items-center gap-2.5 rounded-xl bg-[#fff8f6] border border-[#fad5ce] px-4 py-3">
-            <span className="text-xl">🔥</span>
-            <p className="text-sm font-semibold text-[#c73d22]">
-              {filtered.filter((v) => v.dealCount > 0).length} place{filtered.filter((v) => v.dealCount > 0).length !== 1 ? "s" : ""} with active deals nearby
-            </p>
+        {/* Filter panel */}
+        {showFilters && (
+          <div className="border-t border-[#ece8e3] bg-white px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">City</span>
+              <select value={region} onChange={(e) => chooseRegion(e.target.value)} className="control mt-1 w-full text-sm">{regions.map((r) => <option key={r}>{r}</option>)}</select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">Radius — {radius} km</span>
+              <input type="range" min={1} max={30} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="mt-3 w-full accent-[#e8472a]" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">Budget</span>
+              <select value={priceCap} onChange={(e) => setPriceCap(e.target.value)} className="control mt-1 w-full text-sm">
+                <option value="all">Any price</option>
+                <option value="10">Under $10</option>
+                <option value="15">Under $15</option>
+                <option value="20">Under $20</option>
+                <option value="25">Under $25</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#a09c98]">Sort</span>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} className="control mt-1 w-full text-sm">
+                <option value="smart">Best match</option>
+                <option value="deals">Deals first</option>
+                <option value="price">Cheapest first</option>
+                <option value="nearby">Nearest first</option>
+              </select>
+            </label>
           </div>
         )}
 
+        {/* Category chips */}
+        <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 pt-0 scrollbar-hide">
+          <button onClick={() => setCategory("all")} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === "all" ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>All</button>
+          {FOOD_CATEGORIES.map((c) => (
+            <button key={c.value} onClick={() => setCategory(c.value)} className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${category === c.value ? "bg-[#e8472a] text-white" : "bg-[#f5f5f5] text-[#6b6560]"}`}>
+              {c.emoji} {c.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* ── List ── */}
+      <main className="flex-1 px-3 py-3 space-y-2.5 max-w-2xl mx-auto w-full">
+
+        {/* Status row */}
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-[#a09c98]">
+            {loading ? "Finding places…" : `${filtered.length} place${filtered.length !== 1 ? "s" : ""} within ${radius} km`}
+          </p>
+          {hasDeals && !loading && (
+            <span className="text-xs font-semibold text-[#e8472a]">🔥 {dealCount} deal spot{dealCount !== 1 ? "s" : ""}</span>
+          )}
+        </div>
+
         {/* Empty state */}
         {!loading && coords !== null && filtered.length === 0 && (
-          <div className="rounded-2xl border border-[#ece8e3] bg-white px-6 py-12 text-center">
-            <p className="text-4xl mb-4">🍽️</p>
-            <p className="text-lg font-semibold text-[#1a1714]">Nothing within {radius} km</p>
-            <p className="mt-1.5 text-sm text-[#6b6560] max-w-xs mx-auto">
-              Try a wider radius or be the first to list a place here — it&apos;s free.
-            </p>
-            <div className="mt-5 flex flex-col items-center gap-2">
-              {radius < 30 && (
-                <button onClick={() => setRadius(Math.min(radius + 10, 30))} className="btn-primary mx-auto">
-                  Expand to {Math.min(radius + 10, 30)} km
-                </button>
-              )}
-              <Link href="/list" className="btn-ghost mx-auto">List a place</Link>
+          <div className="rounded-2xl bg-white px-6 py-12 text-center shadow-sm">
+            <p className="text-4xl mb-3">🍽️</p>
+            <p className="font-semibold text-[#1a1714]">Nothing within {radius} km</p>
+            <p className="mt-1 text-sm text-[#a09c98]">Try a wider radius or list your place — it&apos;s free.</p>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              {radius < 30 && <button onClick={() => setRadius(Math.min(radius + 10, 30))} className="rounded-2xl bg-[#e8472a] px-5 py-2.5 text-sm font-bold text-white">Expand to {Math.min(radius + 10, 30)} km</button>}
+              <Link href="/list" className="text-sm font-semibold text-[#e8472a] underline">List a place</Link>
             </div>
           </div>
         )}
@@ -625,8 +474,30 @@ export default function MealSpyApp() {
             </p>
           </div>
         )}
-        </section>
       </main>
+
+      {/* ── Bottom navigation ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-[#ece8e3] bg-white">
+        <button className="flex flex-1 flex-col items-center gap-0.5 text-[#e8472a]">
+          <span className="text-xl leading-none">🍽️</span>
+          <span className="text-[10px] font-semibold">Nearby</span>
+        </button>
+        <Link href="/food/map" className="flex flex-1 flex-col items-center gap-0.5 text-[#a09c98]">
+          <span className="text-xl leading-none">🗺️</span>
+          <span className="text-[10px] font-semibold">Map</span>
+        </Link>
+        <button
+          onClick={() => setSortMode("smart")}
+          className="flex flex-1 flex-col items-center gap-0.5 text-[#a09c98]"
+        >
+          <span className="text-xl leading-none">❤️</span>
+          <span className="text-[10px] font-semibold">Saved</span>
+        </button>
+        <Link href="/list" className="flex flex-1 flex-col items-center gap-0.5 text-[#a09c98]">
+          <span className="text-xl leading-none">➕</span>
+          <span className="text-[10px] font-semibold">List</span>
+        </Link>
+      </nav>
     </div>
   );
 }
