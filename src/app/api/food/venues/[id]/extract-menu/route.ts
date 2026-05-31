@@ -187,11 +187,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // ── Image mode ─────────────────────────────────────────────────────────────
   if (contentType.includes("multipart/form-data")) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "AI image extraction requires ANTHROPIC_API_KEY to be set." }, { status: 501 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("image") as File | null;
     if (!file) return NextResponse.json({ error: "No image provided" }, { status: 400 });
@@ -200,41 +195,66 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (file.size > maxBytes) return NextResponse.json({ error: "Image must be under 5 MB" }, { status: 400 });
 
     const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowed.includes(file.type)) return NextResponse.json({ error: "Unsupported image type" }, { status: 400 });
+    if (!allowed.includes(file.type)) return NextResponse.json({ error: "Unsupported image type. Use JPG, PNG, or WebP." }, { status: 400 });
 
-    const buffer = await file.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    try {
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const client = new Anthropic({ apiKey });
-      const msg = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: "user",
-          content: [{
-            type: "image",
-            source: { type: "base64", media_type: file.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: base64 },
-          }, {
-            type: "text",
-            text: "Parse this menu image and return the JSON array of items.",
+    // ── Path A: AI (Claude) ──────────────────────────────────────────────────
+    if (apiKey) {
+      try {
+        const { default: Anthropic } = await import("@anthropic-ai/sdk");
+        const client = new Anthropic({ apiKey });
+        const msg = await client.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 2048,
+          system: SYSTEM_PROMPT,
+          messages: [{
+            role: "user",
+            content: [{
+              type: "image",
+              source: { type: "base64", media_type: file.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: buffer.toString("base64") },
+            }, {
+              type: "text",
+              text: "Parse this menu image and return the JSON array of items.",
+            }],
           }],
-        }],
-      });
-      const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "[]";
-      const items = JSON.parse(raw.replace(/^```json\n?|```$/g, ""));
+        });
+        const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "[]";
+        const items = JSON.parse(raw.replace(/^```json\n?|```$/g, ""));
+        const existing = await getFoodItems(venue.id);
+        const existingNames = new Set(existing.map((i) => i.name.toLowerCase()));
+        const fresh = items.filter((i: { name: string }) => !existingNames.has(i.name.toLowerCase()));
+        return NextResponse.json({ items: fresh, method: "ai" });
+    } catch (err) {
+        console.error("AI image extraction failed", err);
+        // Fall through to Tesseract
+      }
+    }
 
-      // Deduplicate against existing items
+    // ── Path B: Tesseract OCR + regex parser ────────────────────────────────
+    try {
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng");
+      const { data: { text } } = await worker.recognize(buffer);
+      await worker.terminate();
+
+      if (!text.trim()) {
+        return NextResponse.json({ error: "Could not read any text from the image. Try a clearer photo or use the Paste text tab." }, { status: 422 });
+      }
+
+      const items = parseWithRegex(text);
+      if (!items.length) {
+        return NextResponse.json({ error: "Text was found but no menu items could be parsed. Try the Paste text tab and tidy it up first." }, { status: 422 });
+      }
+
       const existing = await getFoodItems(venue.id);
       const existingNames = new Set(existing.map((i) => i.name.toLowerCase()));
-      const fresh = items.filter((i: { name: string }) => !existingNames.has(i.name.toLowerCase()));
-
-      return NextResponse.json({ items: fresh, method: "ai" });
+      const fresh = items.filter((i) => !existingNames.has(i.name.toLowerCase()));
+      return NextResponse.json({ items: fresh, method: "ocr" });
     } catch (err) {
-      console.error("AI image extraction failed", err);
-      return NextResponse.json({ error: "Could not read image. Try copy-pasting the menu text instead." }, { status: 500 });
+      console.error("Tesseract OCR failed", err);
+      return NextResponse.json({ error: "Image scanning failed. Try the Paste text tab instead." }, { status: 500 });
     }
   }
 

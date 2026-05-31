@@ -36,6 +36,7 @@ export default function EditVenuePage() {
   const [pasteText, setPasteText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
+  const [extractMethod, setExtractMethod] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewItem[]>([]);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkDone, setBulkDone] = useState(false);
@@ -112,6 +113,7 @@ export default function EditVenuePage() {
       const d = await res.json();
       if (!res.ok) { setExtractError(d.error ?? "Failed to extract"); return; }
       if (!d.items?.length) { setExtractError("No items found — check your formatting and try again."); return; }
+      setExtractMethod(d.method ?? null);
       setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, selected: true })));
     } catch { setExtractError("Something went wrong."); }
     finally { setExtracting(false); }
@@ -143,6 +145,7 @@ export default function EditVenuePage() {
       const d = await res.json();
       if (!res.ok) { setExtractError(d.error ?? "Failed to extract"); return; }
       if (!d.items?.length) { setExtractError("No items found in photo. Try copy-pasting the text instead."); return; }
+      setExtractMethod(d.method ?? null);
       setPreview(d.items.map((i: Omit<PreviewItem, "selected">) => ({ ...i, selected: true })));
     } catch { setExtractError("Something went wrong."); }
     finally { setExtracting(false); }
@@ -297,7 +300,7 @@ export default function EditVenuePage() {
               </button>
             </div>
             {extractError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{extractError}</p>}
-            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} />}
+            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
           </div>
         )}
 
@@ -328,7 +331,7 @@ export default function EditVenuePage() {
               </button>
             </div>
             {extractError && <p className="rounded-xl bg-[#fff4f2] px-4 py-3 text-sm font-medium text-[#e8472a]">{extractError}</p>}
-            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} />}
+            {preview.length > 0 && <PreviewList preview={preview} setPreview={setPreview} onSave={saveBulk} saving={bulkSaving} done={bulkDone} extractMethod={extractMethod} />}
           </div>
         )}
       </main>
@@ -336,12 +339,13 @@ export default function EditVenuePage() {
   );
 }
 
-function PreviewList({ preview, setPreview, onSave, saving, done }: {
+function PreviewList({ preview, setPreview, onSave, saving, done, extractMethod }: {
   preview: PreviewItem[];
   setPreview: React.Dispatch<React.SetStateAction<PreviewItem[]>>;
   onSave: () => void;
   saving: boolean;
   done: boolean;
+  extractMethod: string | null;
 }) {
   const selectedCount = preview.filter((i) => i.selected).length;
 
@@ -352,7 +356,10 @@ function PreviewList({ preview, setPreview, onSave, saving, done }: {
   return (
     <div className="rounded-2xl border border-[#ece8e3] bg-white overflow-hidden">
       <div className="px-4 py-3 border-b border-[#ece8e3] flex items-center justify-between">
-        <p className="text-sm font-semibold text-[#1a1714]">Found {preview.length} items — edit before saving</p>
+        <div>
+          <p className="text-sm font-semibold text-[#1a1714]">Found {preview.length} items — edit before saving</p>
+          {extractMethod && <p className="text-[10px] text-[#a09c98] mt-0.5">{extractMethod === "ai" ? "✨ Read by AI" : extractMethod === "ocr" ? "🔍 Read by OCR scanner" : "📝 Parsed from text"}</p>}
+        </div>
         <p className="text-xs text-[#a09c98]">{selectedCount} selected</p>
       </div>
       <div className="divide-y divide-[#ece8e3]">
