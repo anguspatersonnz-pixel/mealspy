@@ -35,17 +35,8 @@ export default function MealSpyApp() {
   const [priceCap, setPriceCap] = useState("all");
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [savedVenueIds, setSavedVenueIds] = useState<string[]>([]);
-  const [locationAsked, setLocationAsked] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // Auto-locate only if permission was previously granted (no prompt needed)
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: "geolocation" }).then((result) => {
-        if (result.state === "granted") locate();
-      });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     try {
@@ -56,7 +47,6 @@ export default function MealSpyApp() {
         const parsed = JSON.parse(storedProfile) as AccountProfile;
         setProfile(parsed);
         if (parsed.maxLunchPrice) setPriceCap(parsed.maxLunchPrice);
-        if (parsed.homeCity && regions.includes(parsed.homeCity)) chooseRegion(parsed.homeCity);
       }
 
       if (storedSaved) {
@@ -92,7 +82,6 @@ export default function MealSpyApp() {
   }
 
   function locate() {
-    setLocationAsked(true);
     if (!navigator.geolocation) {
       setCoords(regionCentres.Auckland);
       return;
@@ -164,8 +153,8 @@ export default function MealSpyApp() {
   const savedVisibleCount = filtered.filter((venue) => savedVenueIds.includes(venue.id)).length;
   const firstName = profile?.name?.trim().split(" ")[0];
 
-  // Location splash
-  if (!locationAsked && !coords) {
+  // Location splash — always shown on load
+  if (!splashDone) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white px-6 text-center">
         {/* Animated noodle bowl */}
@@ -183,10 +172,10 @@ export default function MealSpyApp() {
           <p className="mt-2 text-sm text-[#a09c98]">Cheap food and deals near you</p>
         </div>
         <div className="w-full max-w-xs space-y-2.5">
-          <button onClick={locate} className="w-full rounded-2xl bg-[#e8472a] py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2">
+          <button onClick={() => { setSplashDone(true); locate(); }} className="w-full rounded-2xl bg-[#e8472a] py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2">
             <LocateFixed className="h-4 w-4" /> Use my location
           </button>
-          <button onClick={() => { setLocationAsked(true); chooseRegion("Auckland"); }} className="w-full rounded-2xl border border-[#ece8e3] py-3.5 text-sm font-semibold text-[#6b6560]">
+          <button onClick={() => { setSplashDone(true); chooseRegion("Auckland"); }} className="w-full rounded-2xl border border-[#ece8e3] py-3.5 text-sm font-semibold text-[#6b6560]">
             Pick a city instead
           </button>
         </div>
