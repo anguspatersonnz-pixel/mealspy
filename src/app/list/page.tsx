@@ -271,8 +271,8 @@ function copyToken() {
 
             <div className="card p-4 border-[#fad5ce] bg-[#fff8f6]">
               <p className="text-sm font-semibold text-[#c73d22] mb-1">⚠️ Save your management link</p>
-              <p className="text-xs text-[#6b6560] mb-3">This is the only way to edit your menu and prices. Bookmark it or copy it somewhere safe.</p>
-              <div className="flex items-center gap-2">
+              <p className="text-xs text-[#6b6560] mb-2">This is the only way to edit your menu and prices. Bookmark it or copy it somewhere safe — there&apos;s no account to log in to.</p>
+              <div className="flex items-center gap-2 mb-2">
                 <code className="flex-1 overflow-hidden rounded-lg bg-white border border-[#fad5ce] px-3 py-2 text-[11px] font-mono text-[#6b6560] break-all">
                   {typeof window !== "undefined" ? `${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}` : `/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
                 </code>
@@ -280,6 +280,7 @@ function copyToken() {
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
+              <p className="text-[11px] text-[#a09c98]">Lost it? Contact us and we&apos;ll sort it out.</p>
             </div>
 
             <button onClick={() => setStep("done")} className="btn-primary w-full">
@@ -297,23 +298,6 @@ function copyToken() {
               <p className="mt-2 text-sm text-[#6b6560] max-w-xs mx-auto">
                 People nearby can now find your place.
               </p>
-            </div>
-
-            {/* Save your management link */}
-            <div className="card p-4 border-[#fad5ce] bg-[#fff8f6]">
-              <p className="text-sm font-semibold text-[#c73d22] mb-1">⚠️ Save your management link</p>
-              <p className="text-xs text-[#6b6560] mb-3">This is the only way to edit your menu and prices later. Bookmark it or copy it somewhere safe.</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 overflow-hidden rounded-lg bg-white border border-[#fad5ce] px-3 py-2 text-[11px] font-mono text-[#6b6560] break-all">
-                  {typeof window !== "undefined" ? `${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}` : `/food/venues/${venue.slug}/edit?token=${venue.claim_token}`}
-                </code>
-                <button
-                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/food/venues/${venue.slug}/edit?token=${venue.claim_token}`)}
-                  className="flex-shrink-0 rounded-lg border border-[#fad5ce] bg-white px-3 py-2 text-xs font-semibold text-[#e8472a]"
-                >
-                  Copy
-                </button>
-              </div>
             </div>
 
             <div className="space-y-2">
