@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { addFoodVenue, getFoodVenueBySlug, getFoodVenuesNear } from "@/lib/storage";
+import { addFoodVenue, findDuplicateFoodVenue, getFoodVenueBySlug, getFoodVenuesNear } from "@/lib/storage";
 import { regionCentres } from "@/lib/data";
-import type { FoodVenue } from "@/lib/data";
+import type { FoodVenue, OpeningHours } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -59,9 +59,17 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
-  const { name, category, address, suburb, city, lat, lng, phone, website, description, imageUrl } = body;
+  const { name, category, address, suburb, city, lat, lng, phone, website, description, imageUrl, openingHours } = body;
   if (!name?.trim() || !city?.trim()) {
     return NextResponse.json({ error: "name and city are required" }, { status: 400 });
+  }
+
+  // Duplicate check — same name + address + city
+  if (address?.trim()) {
+    const duplicate = await findDuplicateFoodVenue(name.trim(), address.trim(), city.trim());
+    if (duplicate) {
+      return NextResponse.json({ error: "A listing with that name and address already exists." }, { status: 409 });
+    }
   }
 
   // Use provided coords, or geocode from the address
@@ -107,6 +115,9 @@ export async function POST(request: NextRequest) {
     imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
     claimToken: nanoid(32),
     createdAt: new Date().toISOString(),
+    approved: false,
+    menuStatus: "none",
+    openingHours: openingHours as OpeningHours ?? null,
   };
 
   await addFoodVenue(venue);

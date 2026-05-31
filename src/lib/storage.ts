@@ -203,18 +203,17 @@ export async function addVenue(venue: Venue) {
 const foodVenuesFile = path.join(dataDir, "food-venues.json");
 const foodItemsFile = path.join(dataDir, "food-items.json");
 
-export async function getFoodVenues(): Promise<FoodVenue[]> {
+export async function getFoodVenues(includeUnapproved = false): Promise<FoodVenue[]> {
   if (hasSupabase && supabaseAdmin) {
-    const { data, error } = await supabaseAdmin
-      .from("food_venues")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+    let query = supabaseAdmin.from("food_venues").select("*").order("created_at", { ascending: false });
+    if (!includeUnapproved) query = query.eq("approved", true);
+    const { data, error } = await query;
     if (!error && data) return (data as FoodVenueRow[]).map(foodVenueFromRow);
     throw new Error(error?.message ?? "Could not load food venues");
   }
 
-  return readJson<FoodVenue[]>(foodVenuesFile, []);
+  const all = await readJson<FoodVenue[]>(foodVenuesFile, []);
+  return includeUnapproved ? all : all.filter((v) => v.approved);
 }
 
 export async function getFoodVenuesNear(params: {
@@ -261,15 +260,36 @@ export async function getFoodVenueBySlug(slug: string): Promise<FoodVenue | null
     throw new Error(error.message);
   }
 
-  const venues = await getFoodVenues();
+  const venues = await getFoodVenues(true);
   return venues.find((v) => v.slug === slug) ?? null;
+}
+
+export async function findDuplicateFoodVenue(name: string, address: string, city: string): Promise<FoodVenue | null> {
+  if (hasSupabase && supabaseAdmin) {
+    const { data } = await supabaseAdmin
+      .from("food_venues")
+      .select("*")
+      .ilike("name", name.trim())
+      .ilike("address", address.trim())
+      .ilike("city", city.trim())
+      .limit(1)
+      .maybeSingle();
+    return data ? foodVenueFromRow(data as FoodVenueRow) : null;
+  }
+  const all = await readJson<FoodVenue[]>(foodVenuesFile, []);
+  return all.find(
+    (v) =>
+      v.name.toLowerCase() === name.trim().toLowerCase() &&
+      v.address.toLowerCase() === address.trim().toLowerCase() &&
+      v.city.toLowerCase() === city.trim().toLowerCase()
+  ) ?? null;
 }
 
 export async function addFoodVenue(venue: FoodVenue): Promise<FoodVenue> {
   if (hasSupabase && supabaseAdmin) {
     const { data, error } = await supabaseAdmin
       .from("food_venues")
-      .upsert(foodVenueToRow(venue), { onConflict: "id" })
+      .insert(foodVenueToRow(venue))
       .select("*")
       .single();
 
@@ -277,10 +297,32 @@ export async function addFoodVenue(venue: FoodVenue): Promise<FoodVenue> {
     throw new Error(error?.message ?? "Could not save food venue");
   }
 
-  const venues = await getFoodVenues();
-  const next = [venue, ...venues.filter((v) => v.id !== venue.id)];
-  await writeJson(foodVenuesFile, next);
+  const venues = await readJson<FoodVenue[]>(foodVenuesFile, []);
+  await writeJson(foodVenuesFile, [venue, ...venues]);
   return venue;
+}
+
+export async function updateFoodVenue(id: string, updates: Partial<FoodVenue>): Promise<FoodVenue | null> {
+  if (hasSupabase && supabaseAdmin) {
+    const row: Record<string, unknown> = {};
+    if (updates.approved !== undefined) row.approved = updates.approved;
+    if (updates.menuStatus !== undefined) row.menu_status = updates.menuStatus;
+    if (updates.openingHours !== undefined) row.opening_hours = updates.openingHours;
+    const { data, error } = await supabaseAdmin
+      .from("food_venues")
+      .update(row)
+      .eq("id", id)
+      .select("*")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? foodVenueFromRow(data as FoodVenueRow) : null;
+  }
+  const venues = await readJson<FoodVenue[]>(foodVenuesFile, []);
+  const existing = venues.find((v) => v.id === id);
+  if (!existing) return null;
+  const updated = { ...existing, ...updates };
+  await writeJson(foodVenuesFile, venues.map((v) => (v.id === id ? updated : v)));
+  return updated;
 }
 
 export async function getFoodItems(venueId?: string): Promise<FoodItem[]> {

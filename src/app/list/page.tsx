@@ -4,9 +4,26 @@ import { ArrowLeft, CheckCircle, Copy, ImagePlus, Upload, X } from "lucide-react
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
 import { FOOD_CATEGORIES } from "@/lib/data";
+import type { OpeningHours } from "@/lib/data";
 
 type Step = "form" | "add-items" | "done";
 type CreatedVenue = { id: string; slug: string; claim_token: string };
+
+const DAYS = [
+  { key: "mon", label: "Mon" }, { key: "tue", label: "Tue" },
+  { key: "wed", label: "Wed" }, { key: "thu", label: "Thu" },
+  { key: "fri", label: "Fri" }, { key: "sat", label: "Sat" },
+  { key: "sun", label: "Sun" },
+] as const;
+
+type DayKey = typeof DAYS[number]["key"];
+type DayHours = { open: string; close: string } | null;
+
+const DEFAULT_HOURS: Record<DayKey, DayHours> = {
+  mon: { open: "08:00", close: "17:00" }, tue: { open: "08:00", close: "17:00" },
+  wed: { open: "08:00", close: "17:00" }, thu: { open: "08:00", close: "17:00" },
+  fri: { open: "08:00", close: "17:00" }, sat: null, sun: null,
+};
 
 export default function ListYourPlace() {
   const [step, setStep] = useState<Step>("form");
@@ -14,6 +31,14 @@ export default function ListYourPlace() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [hours, setHours] = useState<Record<DayKey, DayHours>>(DEFAULT_HOURS);
+
+  function setDay(day: DayKey, enabled: boolean) {
+    setHours((h) => ({ ...h, [day]: enabled ? { open: "08:00", close: "17:00" } : null }));
+  }
+  function setDayTime(day: DayKey, field: "open" | "close", val: string) {
+    setHours((h) => ({ ...h, [day]: { ...(h[day] ?? { open: "08:00", close: "17:00" }), [field]: val } }));
+  }
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +87,7 @@ export default function ListYourPlace() {
           website: form.get("website"),
           description: form.get("description"),
           imageUrl: imagePreview ?? null,
+          openingHours: hours as OpeningHours,
         }),
       });
       const data = await res.json();
@@ -207,6 +233,36 @@ export default function ListYourPlace() {
                   <span className="label">Website</span>
                   <input name="website" type="text" placeholder="https://yourcafe.co.nz" className="control mt-1.5" />
                 </label>
+              </div>
+            </div>
+
+            {/* Opening hours */}
+            <div className="card p-5">
+              <h2 className="mb-1 text-base font-semibold text-[#1a1714]">Opening hours <span className="text-[#a09c98] font-normal text-sm">(optional)</span></h2>
+              <p className="mb-4 text-xs text-[#a09c98]">Helps customers know if you&apos;re open right now.</p>
+              <div className="space-y-2">
+                {DAYS.map(({ key, label }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <label className="flex w-10 items-center gap-1.5 text-sm font-medium text-[#1a1714]">
+                      <input
+                        type="checkbox"
+                        checked={hours[key] !== null}
+                        onChange={(e) => setDay(key, e.target.checked)}
+                        className="h-4 w-4 accent-[#e8472a]"
+                      />
+                      {label}
+                    </label>
+                    {hours[key] ? (
+                      <div className="flex items-center gap-1.5">
+                        <input type="time" value={hours[key]!.open} onChange={(e) => setDayTime(key, "open", e.target.value)} className="control py-1 text-xs w-28" />
+                        <span className="text-xs text-[#a09c98]">–</span>
+                        <input type="time" value={hours[key]!.close} onChange={(e) => setDayTime(key, "close", e.target.value)} className="control py-1 text-xs w-28" />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-[#a09c98]">Closed</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 

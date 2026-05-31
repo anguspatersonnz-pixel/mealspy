@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFoodVenueBySlug, getFoodVenues, saveMenuUpload } from "@/lib/storage";
+import { getFoodVenueBySlug, getFoodVenues, saveMenuUpload, updateFoodVenue } from "@/lib/storage";
 
 async function resolveVenue(id: string) {
   const venues = await getFoodVenues();
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const buffer = Buffer.from(await file.arrayBuffer());
   await saveMenuUpload(venue.id, file.name, buffer);
+  await updateFoodVenue(venue.id, { menuStatus: "pending" });
 
   return NextResponse.json({ ok: true });
 }

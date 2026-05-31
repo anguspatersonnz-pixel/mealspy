@@ -12,6 +12,12 @@ export const FOOD_CATEGORIES: Array<{ value: FoodCategory; label: string; emoji:
   { value: "dairy", label: "Dairy / dairy bar", emoji: "🍦" },
 ];
 
+export type OpeningDay = { open: string; close: string } | null;
+export type OpeningHours = {
+  mon: OpeningDay; tue: OpeningDay; wed: OpeningDay; thu: OpeningDay;
+  fri: OpeningDay; sat: OpeningDay; sun: OpeningDay;
+};
+
 export type FoodVenue = {
   id: string;
   name: string;
@@ -28,8 +34,24 @@ export type FoodVenue = {
   imageUrl: string | null;
   claimToken: string;
   createdAt: string;
+  approved: boolean;
+  menuStatus: "none" | "pending" | "live";
+  openingHours: OpeningHours | null;
   distanceKm?: number;
 };
+
+export function isOpenNow(hours: OpeningHours | null): boolean | null {
+  if (!hours) return null;
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+  const now = new Date();
+  const day = days[now.getDay()];
+  const h = hours[day];
+  if (!h) return false;
+  const [oh, om] = h.open.split(":").map(Number);
+  const [ch, cm] = h.close.split(":").map(Number);
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return mins >= oh * 60 + om && mins < ch * 60 + cm;
+}
 
 export type FoodItem = {
   id: string;

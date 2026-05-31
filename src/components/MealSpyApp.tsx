@@ -3,7 +3,7 @@
 import { Beer, Bell, ChevronDown, ChevronUp, Heart, LocateFixed, Map, MapPin, Navigation, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Tag, TrendingDown, User, WalletCards, X } from "lucide-react"; // Sparkles kept for sort button
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FOOD_CATEGORIES, money, regionCentres, regions } from "@/lib/data";
+import { FOOD_CATEGORIES, isOpenNow, money, regionCentres, regions } from "@/lib/data";
 import type { FoodCategory, FoodItem, FoodVenue } from "@/lib/data";
 
 type VenueWithMeta = FoodVenue & { cheapestPrice: number | null; dealCount: number };
@@ -452,6 +452,8 @@ export default function MealSpyApp() {
             );
             const regularItems = availableItems.filter((i) => !deals.includes(i));
 
+            const openStatus = isOpenNow(venue.openingHours ?? null);
+
             return (
               <article key={venue.id} className="card overflow-hidden">
                 {/* Image */}
@@ -476,6 +478,15 @@ export default function MealSpyApp() {
                             <Tag className="h-2.5 w-2.5" />
                             {venue.dealCount} deal{venue.dealCount !== 1 ? "s" : ""}
                           </span>
+                        )}
+                        {openStatus === true && (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">Open</span>
+                        )}
+                        {openStatus === false && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500">Closed</span>
+                        )}
+                        {venue.menuStatus === "pending" && (
+                          <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[11px] font-semibold text-yellow-700">Menu coming soon</span>
                         )}
                       </div>
                       <p className="mt-1 text-sm text-[#a09c98]">

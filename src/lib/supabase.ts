@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Listing } from "./data";
-import type { FoodItem, FoodVenue, Venue } from "./data";
+import type { FoodItem, FoodVenue, OpeningHours, Venue } from "./data";
 import type { SellerApplication } from "./storage";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -71,6 +71,9 @@ export type FoodVenueRow = {
   image_url: string | null;
   claim_token: string;
   created_at: string;
+  approved: boolean;
+  menu_status: "none" | "pending" | "live";
+  opening_hours: OpeningHours | null;
 };
 
 export type FoodItemRow = {
@@ -203,6 +206,9 @@ export function foodVenueFromRow(row: FoodVenueRow): FoodVenue {
     imageUrl: row.image_url,
     claimToken: row.claim_token,
     createdAt: row.created_at,
+    approved: row.approved ?? false,
+    menuStatus: row.menu_status ?? "none",
+    openingHours: row.opening_hours ?? null,
   };
 }
 
@@ -223,6 +229,9 @@ export function foodVenueToRow(venue: FoodVenue): Omit<FoodVenueRow, "created_at
     image_url: venue.imageUrl,
     claim_token: venue.claimToken,
     created_at: venue.createdAt,
+    approved: venue.approved,
+    menu_status: venue.menuStatus,
+    opening_hours: venue.openingHours,
   };
 }
 

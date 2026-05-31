@@ -90,6 +90,12 @@ create table if not exists public.food_items (
   created_at timestamptz not null default now()
 );
 
+alter table public.food_venues
+  add column if not exists approved boolean not null default false,
+  add column if not exists menu_status text not null default 'none' check (menu_status in ('none', 'pending', 'live')),
+  add column if not exists opening_hours jsonb;
+
+create index if not exists food_venues_approved_idx on public.food_venues (approved);
 create index if not exists food_venues_slug_idx on public.food_venues (slug);
 create index if not exists food_venues_city_category_idx on public.food_venues (city, category);
 create index if not exists food_venues_lat_lng_idx on public.food_venues (lat, lng);
