@@ -375,7 +375,7 @@ export default function MealSpyApp() {
             )}
           </p>
           <div className="flex items-center gap-2">
-            <Link href="/map" className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#1a6b3c] hover:text-[#1a6b3c]">
+            <Link href="/food/map" className="flex items-center gap-1.5 rounded-lg border border-[#ece8e3] bg-white px-3 py-2 text-xs font-semibold text-[#6b6560] transition hover:border-[#1a6b3c] hover:text-[#1a6b3c]">
               <Map className="h-3.5 w-3.5" />
               Map
             </Link>
