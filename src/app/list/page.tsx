@@ -211,7 +211,7 @@ export default function ListYourPlace() {
               <div className="space-y-3">
                 <label className="block">
                   <span className="label">Phone</span>
-                  <input name="phone" type="tel" placeholder="09 123 4567" className="control mt-1.5" />
+                  <input name="phone" type="text" placeholder="09 123 4567" className="control mt-1.5" />
                 </label>
                 <label className="block">
                   <span className="label">Website</span>
